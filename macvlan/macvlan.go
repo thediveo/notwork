@@ -51,12 +51,12 @@ func LocateHWParent() netlink.Link {
 	return parents[0]
 }
 
-// CreateTransient creates and returns a new (and transient) MACVLAN network
+// NewTransient creates and returns a new (and transient) MACVLAN network
 // interface attached to the specified parent network interface (which must be a
 // hardware network interface, including the dummy kind). CreateTransient
 // automatically defers proper automatic removal of the MACVLAN network
 // interface.
-func CreateTransient(parent netlink.Link) netlink.Link {
+func NewTransient(parent netlink.Link) netlink.Link {
 	GinkgoHelper()
 	mcvlan := &netlink.Macvlan{
 		LinkAttrs: netlink.LinkAttrs{
@@ -66,3 +66,10 @@ func CreateTransient(parent netlink.Link) netlink.Link {
 	}
 	return link.NewTransient(mcvlan, MacvlanPrefix)
 }
+
+// CreateTransient creates and returns a new (and transient) MACVLAN network
+// interface attached to the specified parent network interface (which must be a
+// hardware network interface, including the dummy kind).
+//
+// Deprecated: use [NewTransient] instead.
+func CreateTransient(parent netlink.Link) netlink.Link { return NewTransient(parent) }
