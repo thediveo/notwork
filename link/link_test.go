@@ -16,6 +16,7 @@ package link
 
 import (
 	"os"
+	"time"
 
 	"github.com/vishvananda/netlink"
 
@@ -77,6 +78,54 @@ var _ = Describe("creates transient network interfaces", func() {
 		}).To(PanicWith("canary"))
 		fail = oldfail
 		Expect(msg).To(MatchRegexp(`cannot create a transient network interface .*, reason: invalid argument`))
+	})
+
+	Context("ensuring that network interfaces are operationally up", func() {
+
+		It("doesn't accept multiple optional durations", func() {
+			var r any
+			func() {
+				defer func() {
+					r = recover()
+				}()
+				EnsureUp(nil, time.Millisecond, time.Millisecond)
+			}()
+			Expect(r).To(ContainSubstring("single optional maximum wait duration"))
+		})
+
+		It("times out", func() {
+			// work around circular import
+			dmy := NewTransient(&netlink.Dummy{}, "tst-")
+			var msg string
+			g := NewGomega(func(message string, callerSkip ...int) {
+				msg = message
+			})
+			ensureUp(g, dmy, 100*time.Millisecond)
+			Expect(msg).To(ContainSubstring("Timed out after 0."))
+
+			ensureUp(g, dmy)
+			Expect(msg).To(ContainSubstring("Timed out after 2."))
+		})
+
+		It("waits for operationally up", func() {
+			// work around circular import
+			dmy := NewTransient(&netlink.Dummy{}, "tst-")
+			mcvlan := NewTransient(&netlink.Macvlan{
+				LinkAttrs: netlink.LinkAttrs{
+					ParentIndex: dmy.Attrs().Index,
+				},
+				Mode: netlink.MACVLAN_MODE_BRIDGE,
+			}, "tst-")
+			var msg string
+			g := NewGomega(func(message string, callerSkip ...int) {
+				msg = message
+			})
+			netlink.LinkSetUp(mcvlan)
+			ensureUp(g, mcvlan)
+			Expect(msg).To(BeEmpty())
+
+		})
+
 	})
 
 })

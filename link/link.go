@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"time"
 
 	"github.com/jinzhu/copier"
 	"github.com/vishvananda/netlink"
@@ -72,4 +73,31 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 	}
 	fail(fmt.Sprintf("too many failed attempts to create a transient network interface of type %q", link.Type()))
 	return nil // not reachable
+}
+
+// EnsureUp brings the specified network interface up and waits for it to become
+// operationally “UP”. The maximum wait duration can be optionally specified; it
+// defaults to 2s.
+func EnsureUp(link netlink.Link, within ...time.Duration) {
+	GinkgoHelper()
+	ensureUp(Default, link, within...)
+}
+
+// ensureUp takes an additional Gomega in order to allow unit testing it.
+func ensureUp(g Gomega, link netlink.Link, within ...time.Duration) {
+	var atmost time.Duration
+	switch len(within) {
+	case 0:
+		atmost = 2 * time.Second
+	case 1:
+		atmost = within[0]
+	default:
+		panic("only a single optional maximum wait duration allowed")
+	}
+
+	g.Eventually(func() netlink.LinkOperState {
+		lnk, _ := netlink.LinkByIndex(link.Attrs().Index)
+		return lnk.Attrs().OperState
+	}).Within(atmost).ProbeEvery(100 * time.Millisecond).
+		Should(Equal(netlink.LinkOperState(netlink.OperUp)))
 }
