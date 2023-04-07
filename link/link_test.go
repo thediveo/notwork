@@ -16,9 +16,11 @@ package link
 
 import (
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/vishvananda/netlink"
+	"golang.org/x/sys/unix"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -78,6 +80,26 @@ var _ = Describe("creates transient network interfaces", func() {
 		}).To(PanicWith("canary"))
 		fail = oldfail
 		Expect(msg).To(MatchRegexp(`cannot create a transient network interface .*, reason: invalid argument`))
+	})
+
+	It("removes a transient network interface in a different network namespace", func() {
+		if os.Geteuid() != 0 {
+			Skip("needs root")
+		}
+
+		By("creating a new network namespace")
+		runtime.LockOSThread()
+		netnsfd := Successful(unix.Open("/proc/self/ns/net", unix.O_RDONLY, 0))
+		DeferCleanup(func() {
+			if err := unix.Setns(netnsfd, 0); err != nil {
+				panic(err)
+			}
+			runtime.UnlockOSThread()
+		})
+		unix.Unshare(unix.CLONE_NEWNET)
+
+		By("creating a transient network interface")
+		_ = NewTransient(&netlink.Dummy{}, dummyPrefix)
 	})
 
 	Context("ensuring that network interfaces are operationally up", func() {

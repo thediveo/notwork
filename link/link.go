@@ -43,6 +43,10 @@ var fail = Fail // allow testing Fails without terminally failing the current te
 //
 // The newly created transient link starts in down operational state. Use
 // [netlink.LinkSetUp] to bring its operational state "up".
+//
+// NewTransient remembers the network namespace the network interface was
+// created in, so that it can correctly clean up the transient network interface
+// later from one of Ginkgo's deferred cleanup handlers.
 func NewTransient(link netlink.Link, prefix string) netlink.Link {
 	GinkgoHelper()
 
@@ -50,6 +54,16 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 	newlink := reflect.New(reflect.ValueOf(link).Elem().Type()).Interface().(netlink.Link)
 	copier.CopyWithOption(newlink, link, copier.Option{DeepCopy: true, IgnoreEmpty: true})
 	link = newlink
+
+	netnsh, err := netlink.NewHandle()
+	Expect(err).NotTo(HaveOccurred(), "cannot create NETLINK handle")
+	defer func() {
+		// Only close the netlink handle when it wasn't captured for a deferred
+		// cleanup and thus hasn't been set to nil.
+		if netnsh != nil {
+			netnsh.Close()
+		}
+	}()
 
 	randbytes := make([]byte, 5)
 	for attempt := 1; attempt <= 10; attempt++ {
@@ -60,10 +74,19 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 		if err == nil {
 			// Phew, this worked.
 			By(fmt.Sprintf("creating a transient network interface %q", link.Attrs().Name))
-			DeferCleanup(func() {
-				By(fmt.Sprintf("removing transient network interface %q", link.Attrs().Name))
-				Expect(netlink.LinkDel(link)).To(Succeed(), "cannot remove transient network interface %q", link.Attrs().Name)
-			})
+			{
+				netnsh := netnsh // the deferred cleanup closure must capture the handle value copy.
+				DeferCleanup(func() {
+					defer func() {
+						netnsh.Close() // finally release the netlink handle
+					}()
+					By(fmt.Sprintf("removing transient network interface %q", link.Attrs().Name))
+					Expect(netnsh.LinkDel(link)).To(Succeed(), "cannot remove transient network interface %q", link.Attrs().Name)
+				})
+			}
+			// tell the deferred handler to not close the netlink handle as it
+			// is still needed later by the deferred cleanup handler.
+			netnsh = nil
 			return link
 		}
 		if !errors.Is(err, os.ErrExist) {
