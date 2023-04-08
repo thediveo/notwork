@@ -4,7 +4,7 @@
 [![GitHub](https://img.shields.io/github/license/thediveo/notwork)](https://img.shields.io/github/license/thediveo/notwork)
 ![build and test](https://github.com/thediveo/notwork/workflows/build%20and%20test/badge.svg?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/thediveo/whalewatcher)](https://goreportcard.com/report/github.com/thediveo/notwork)
-![Coverage](https://img.shields.io/badge/Coverage-96.6%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-95.6%25-brightgreen)
 
 A tiny package to help with creating transient Linux virtual network elements
 for testing purposes. It leverages both the
