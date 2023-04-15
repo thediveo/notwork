@@ -24,6 +24,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/thediveo/notwork/netns"
 	. "github.com/thediveo/success"
 )
 
@@ -89,7 +90,7 @@ var _ = Describe("creates transient network interfaces", func() {
 
 		By("creating a new network namespace")
 		runtime.LockOSThread()
-		netnsfd := Successful(unix.Open("/proc/self/ns/net", unix.O_RDONLY, 0))
+		netnsfd := netns.Current()
 		DeferCleanup(func() {
 			if err := unix.Setns(netnsfd, 0); err != nil {
 				panic(err)

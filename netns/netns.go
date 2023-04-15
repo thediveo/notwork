@@ -18,26 +18,28 @@ import (
 	"fmt"
 	"runtime"
 
+	"github.com/vishvananda/netlink"
+	nlnetns "github.com/vishvananda/netns"
 	"golang.org/x/sys/unix"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
-// EnterTransientNetns creates and enters a new (and isolated) network
-// namespace, returning a function that needs to be defer'ed in order to
-// correctly switch the calling go routine and its locked OS-level thread back
-// when the caller itself returns.
+// EnterTransient creates and enters a new (and isolated) network namespace,
+// returning a function that needs to be defer'ed in order to correctly switch
+// the calling go routine and its locked OS-level thread back when the caller
+// itself returns.
 //
 // In case the caller cannot be switched back correctly, the defer'ed clean up
 // will panic with an error description.
-func EnterTransientNetns() func() {
+func EnterTransient() func() {
 	GinkgoHelper()
 
 	runtime.LockOSThread()
 	netnsfd, err := unix.Open("/proc/thread-self/ns/net", unix.O_RDONLY, 0)
 	Expect(err).NotTo(HaveOccurred(), "cannot determine current network namespace from procfs")
-	unix.Unshare(unix.CLONE_NEWNET)
+	Expect(unix.Unshare(unix.CLONE_NEWNET)).To(Succeed(), "cannot create new network namespace")
 	return func() { // this cannot be DeferCleanup'ed: we need to restore the current locked go routine
 		if err := unix.Setns(netnsfd, 0); err != nil {
 			panic(fmt.Sprintf("cannot restore original network namespace, reason: %s", err.Error()))
@@ -45,4 +47,71 @@ func EnterTransientNetns() func() {
 		unix.Close(netnsfd)
 		runtime.UnlockOSThread()
 	}
+}
+
+// NewTransient creates a new network namespace, but doesn't enter it. Instead,
+// it returns a file descriptor referencing the new network namespace. It
+// additionally schedules a Ginkgo deferred cleanup in order to close the fd
+// referencing the newly created network namespace.
+func NewTransient() int {
+	GinkgoHelper()
+
+	runtime.LockOSThread()
+	// no deferred unlock, as we need to throw away the OS-level thread if
+	// things go south.
+	orignetnsfd := Current()
+	defer unix.Close(orignetnsfd)
+	Expect(unix.Unshare(unix.CLONE_NEWNET)).To(Succeed(), "cannot create new network namespace")
+	netnsfd, err := unix.Open("/proc/thread-self/ns/net", unix.O_RDONLY, 0)
+	Expect(err).NotTo(HaveOccurred(), "cannot determine new network namespace from procfs")
+	Expect(unix.Setns(orignetnsfd, unix.CLONE_NEWNET)).To(Succeed(), "cannot switch back into original network namespace")
+	DeferCleanup(func() {
+		unix.Close(netnsfd)
+	})
+	runtime.UnlockOSThread()
+	return netnsfd
+}
+
+// Current returns a file descriptor referencing the current network namespace.
+// In particular, the current network namespace of the OS-level thread of the
+// caller's Go routine (which should ideally be thread-locked).
+func Current() int {
+	GinkgoHelper()
+
+	netnsfd, err := unix.Open("/proc/thread-self/ns/net", unix.O_RDONLY, 0)
+	Expect(err).NotTo(HaveOccurred(), "cannot determine current network namespace from procfs")
+	return netnsfd
+}
+
+// Ino returns the identification/inode number of the passed network namespace.
+func Ino[R ~int | ~string](netns R) uint64 {
+	GinkgoHelper()
+
+	var netnsStat unix.Stat_t
+	switch ref := any(netns).(type) {
+	case int:
+		Expect(unix.Fstat(ref, &netnsStat)).To(Succeed(),
+			"cannot stat network namespace reference %v", ref)
+	case string:
+		Expect(unix.Stat(ref, &netnsStat)).To(Succeed(),
+			"cannot stat network namespace reference %v", ref)
+	}
+	return netnsStat.Ino
+}
+
+// CurrentIno returns the identification/inode number of the network namespace
+// for the current thread.
+func CurrentIno() uint64 {
+	return Ino("/proc/thread-self/ns/net")
+}
+
+// NewNetlinkHandle returns a netlink handle connected to the network namespace
+// referenced by the specified fd (file descriptor). For instance, this file
+// descriptor might be one returned by [NewTransient] or [Current].
+func NewNetlinkHandle(netnsfd int) *netlink.Handle {
+	GinkgoHelper()
+
+	nlh, err := netlink.NewHandleAt(nlnetns.NsHandle(netnsfd))
+	Expect(err).NotTo(HaveOccurred(), "cannot create netlink handle for network namespace")
+	return nlh
 }

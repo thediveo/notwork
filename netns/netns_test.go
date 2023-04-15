@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/thediveo/fdooze"
 	. "github.com/thediveo/success"
+	"golang.org/x/sys/unix"
 )
 
 var _ = Describe("transient network namespaces", Ordered, func() {
@@ -46,7 +47,7 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 		initialNetnsInfo := Successful(os.Stat("/proc/thread-self/ns/net"))
 
 		By("creating and entering a new network namespace")
-		f := EnterTransientNetns()
+		f := EnterTransient()
 		currentNetnsInfo := Successful(os.Stat("/proc/thread-self/ns/net"))
 		Expect(initialNetnsInfo.Sys().(*syscall.Stat_t).Ino).NotTo(
 			Equal(currentNetnsInfo.Sys().(*syscall.Stat_t).Ino))
@@ -56,6 +57,19 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 		currentNetnsInfo = Successful(os.Stat("/proc/thread-self/ns/net"))
 		Expect(initialNetnsInfo.Sys().(*syscall.Stat_t).Ino).To(
 			Equal(currentNetnsInfo.Sys().(*syscall.Stat_t).Ino))
+	})
+
+	It("creates a transient network namespace without entering it", func() {
+		homeIno := CurrentIno()
+		Expect(homeIno).NotTo(BeZero())
+		Expect(homeIno).To(Equal(Ino("/proc/self/ns/net")))
+
+		netnsfd := NewTransient()
+		defer unix.Close(netnsfd)
+
+		netnsIno := Ino(netnsfd)
+		Expect(netnsIno).NotTo(BeZero())
+		Expect(netnsIno).NotTo(Equal(homeIno))
 	})
 
 })
