@@ -72,6 +72,26 @@ func NewTransient() int {
 	return netnsfd
 }
 
+// Execute a function fn in the specified network namespace, referenced by the
+// open file descriptor netnsfd.
+func Execute(netnsfd int, fn func()) {
+	execute(Default, netnsfd, fn)
+}
+
+func execute(g Gomega, netnsfd int, fn func()) {
+	runtime.LockOSThread()
+	// no deferred unlock, as we need to throw away the OS-level thread if
+	// things go south.
+	orignetnsfd := Current()
+	defer unix.Close(orignetnsfd)
+	g.Expect(unix.Setns(netnsfd, unix.CLONE_NEWNET)).To(Succeed(), "cannot switch into network namespace")
+	defer func() {
+		g.Expect(unix.Setns(orignetnsfd, unix.CLONE_NEWNET)).To(Succeed(), "cannot switch back into original network namespace")
+		runtime.UnlockOSThread()
+	}()
+	fn()
+}
+
 // Current returns a file descriptor referencing the current network namespace.
 // In particular, the current network namespace of the OS-level thread of the
 // caller's Go routine (which should ideally be thread-locked).

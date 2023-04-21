@@ -72,4 +72,23 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 		Expect(netnsIno).NotTo(Equal(homeIno))
 	})
 
+	It("cannot enter an invalid network namespace", func() {
+		var msg string
+		g := NewGomega(func(message string, callerSkip ...int) {
+			msg = message
+		})
+		execute(g, 0, func() {})
+		Expect(msg).To(ContainSubstring("cannot switch into network namespace"))
+	})
+
+	It("executes a function in a different network namespace", func() {
+		netnsfd := NewTransient()
+		defer unix.Close(netnsfd)
+		netnsIno := Ino(netnsfd)
+		var currentnetnsIno uint64
+		Execute(netnsfd, func() { currentnetnsIno = Ino("/proc/thread-self/ns/net") })
+		Expect(currentnetnsIno).NotTo(BeZero())
+		Expect(currentnetnsIno).To(Equal(netnsIno))
+	})
+
 })
