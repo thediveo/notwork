@@ -11,6 +11,28 @@ for testing purposes. It leverages both the
 [Ginkgo](https://github.com/onsi/ginkgo) testing framework and matching (erm,
 sic!) [Gomega](https://github.com/onsi/gomega) matchers.
 
+## Usage
+
+To create a transient MACVLAN network interface with a dummy-type parent network interface for the duration of a test (node):
+
+```go
+import (
+    "github.com/thediveo/notwork/dummy"
+    "github.com/thediveo/notwork/macvlan"
+
+    . "github.com/onsi/ginkgo/v2"
+    . "github.com/onsi/gomega"
+)
+
+var _ = Describe("some testing", func() {
+
+    It("creates a transient MACVLAN with a dummy parent", func() {
+        mcvlan := macvlan.NewTransient(dummy.NewTransient())
+    })
+
+})
+```
+
 ## Make Targets
 
 - `make`: lists all targets.
