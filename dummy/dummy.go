@@ -25,7 +25,7 @@ import (
 // DummyPrefix is the name prefix used for transient dummy network interfaces.
 const DummyPrefix = "dumy-"
 
-// NewTransient creates a transient network interface of type "[dummy]". It does
+// NewTransient creates a transient network interface of type “[dummy]”. It does
 // not configure any IP address(es) though. NewTransient automatically defers
 // proper automatic removal of the dummy network interface.
 //
@@ -35,7 +35,7 @@ func NewTransient() netlink.Link {
 	return link.NewTransient(&netlink.Dummy{}, DummyPrefix)
 }
 
-// NewTransientUp creates a transient network interface of type "[dummy]" and
+// NewTransientUp creates a transient network interface of type “[dummy]” and
 // additionally brings it up. It does not configure any IP address(es) though.
 // NewTransient automatically defers proper automatic removal of the dummy
 // network interface.

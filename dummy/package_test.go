@@ -21,7 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestLinux(t *testing.T) {
+func TestDummy(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "notwork/dummy package")
 }

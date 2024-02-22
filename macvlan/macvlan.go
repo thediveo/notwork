@@ -22,15 +22,16 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-// is the name prefix used for transient MACVLAN network interfaces.
+// MacvlanPrefix is the name prefix used for transient MACVLAN network
+// interfaces.
 const MacvlanPrefix = "mcvl-"
 
-// LocateHWParent locates a "hardware" network interface in the current network
+// LocateHWParent locates a “hardware” network interface in the current network
 // namespace that is operationally up and returns it. If no suitable network
 // interface can be found, then the current test is failed. If multiple suitable
 // network interfaces are found, a random one of them is returned.
 //
-// Please consider using a "dummy" network interface instead as a MACVLAN parent
+// Please consider using a “dummy” network interface instead as a MACVLAN parent
 // unless it's absolutely necessary to use a hardware network interface. Dummy
 // network interfaces can be created using [dummy.NewTransient].
 func LocateHWParent() netlink.Link {

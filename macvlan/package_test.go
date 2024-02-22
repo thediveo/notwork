@@ -21,7 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestLinux(t *testing.T) {
+func TestMACVLAN(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "notwork/macvlan package")
 }

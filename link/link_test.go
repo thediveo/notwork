@@ -19,12 +19,12 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/thediveo/notwork/netns"
 	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/thediveo/notwork/netns"
 	. "github.com/thediveo/success"
 )
 
