@@ -21,7 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestLinux(t *testing.T) {
+func TestNetNS(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "notwork/netns package")
 }

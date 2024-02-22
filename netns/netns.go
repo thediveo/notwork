@@ -103,7 +103,8 @@ func Current() int {
 	return netnsfd
 }
 
-// Ino returns the identification/inode number of the passed network namespace.
+// Ino returns the identification/inode number of the passed network namespace,
+// either referenced by a file descriptor or a VFS path name.
 func Ino[R ~int | ~string](netns R) uint64 {
 	GinkgoHelper()
 

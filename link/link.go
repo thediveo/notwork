@@ -39,10 +39,14 @@ var fail = Fail // allow testing Fails without terminally failing the current te
 //
 // The passed link description is deep-copied first and thus never modified.
 // Only the returned link description correctly references the newly created
-// network interface ("link").
+// network interface (“link”).
 //
 // The newly created transient link starts in down operational state. Use
-// [netlink.LinkSetUp] to bring its operational state "up".
+// [netlink.LinkSetUp] to bring its operational state “up”.
+//
+// If VETH link information is passed in, NewTransient will automatically
+// populate the [netlink.Veth.PeerName] with a name that also begins with the
+// given prefix and a random string of 10 hex digits.
 //
 // NewTransient remembers the network namespace the network interface was
 // created in, so that it can correctly clean up the transient network interface
@@ -52,7 +56,8 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 
 	Expect(link).NotTo(BeNil(), "need a non-nil link description")
 	newlink := reflect.New(reflect.ValueOf(link).Elem().Type()).Interface().(netlink.Link)
-	copier.CopyWithOption(newlink, link, copier.Option{DeepCopy: true, IgnoreEmpty: true})
+	Expect(copier.CopyWithOption(newlink, link, copier.Option{DeepCopy: true, IgnoreEmpty: true})).
+		To(Succeed())
 	link = newlink
 
 	netnsh, err := netlink.NewHandle()
@@ -67,9 +72,18 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 
 	randbytes := make([]byte, 5)
 	for attempt := 1; attempt <= 10; attempt++ {
-		rand.Read(randbytes)
+		// Roll the dice to create a (new) random interface name...
+		Expect(rand.Read(randbytes)).Error().NotTo(HaveOccurred())
 		ifname := prefix + hex.EncodeToString(randbytes)
 		link.Attrs().Name = ifname
+		// If this is going to be a VETH peer-to-peer link, then also roll the
+		// dice to create a random peer interface name...
+		if veth, ok := link.(*netlink.Veth); ok {
+			Expect(rand.Read(randbytes)).Error().NotTo(HaveOccurred())
+			peername := prefix + hex.EncodeToString(randbytes)
+			veth.PeerName = peername
+		}
+		// Try to create the link a see what happens...
 		err := netlink.LinkAdd(link)
 		if err == nil {
 			// Phew, this worked.
@@ -84,8 +98,9 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 					Expect(netnsh.LinkDel(link)).To(Succeed(), "cannot remove transient network interface %q", link.Attrs().Name)
 				})
 			}
-			// tell the deferred handler to not close the netlink handle as it
-			// is still needed later by the deferred cleanup handler.
+			// tell the deferred handler (this is NOT the DeferCleanup handler)
+			// to not close the netlink handle as it is still needed later by
+			// the deferred cleanup handler.
 			netnsh = nil
 			return link
 		}

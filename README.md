@@ -4,14 +4,14 @@
 [![GitHub](https://img.shields.io/github/license/thediveo/notwork)](https://img.shields.io/github/license/thediveo/notwork)
 ![build and test](https://github.com/thediveo/notwork/workflows/build%20and%20test/badge.svg?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/thediveo/whalewatcher)](https://goreportcard.com/report/github.com/thediveo/notwork)
-![Coverage](https://img.shields.io/badge/Coverage-95.6%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-91.9%25-brightgreen)
 
 A tiny package to help with creating transient Linux virtual network elements
 for testing purposes. It leverages both the
 [Ginkgo](https://github.com/onsi/ginkgo) testing framework and matching (erm,
 sic!) [Gomega](https://github.com/onsi/gomega) matchers.
 
-## Usage
+## Usage Example
 
 To create a transient MACVLAN network interface with a dummy-type parent network interface for the duration of a test (node):
 
@@ -32,6 +32,60 @@ var _ = Describe("some testing", func() {
 
 })
 ```
+
+## Using Throw-Away Network Namespaces
+
+Even better, don't trash around the host network namespace, but instead use a
+throw-away network namespace that is separate from the host network namespace.
+
+```go
+import (
+    "github.com/thediveo/notwork/dummy"
+    "github.com/thediveo/notwork/macvlan"
+    "github.com/thediveo/notwork/netns"
+
+    . "github.com/onsi/ginkgo/v2"
+    . "github.com/onsi/gomega"
+)
+
+var _ = Describe("some isolated testing", func() {
+
+    It("creates a transient MACVLAN with a dummy parent inside a throw-away netns", func() {
+        defer netns.EnterTransient()()
+        mcvlan := macvlan.NewTransient(dummy.NewTransient())
+    })
+
+})
+```
+
+## VETH Pair Ends in Different Network Namespaces
+
+With the previous examples under our black notwork belts, let's create a VETH
+pair of network interfaces that connect two transient network namespaces.
+
+```go
+import (
+  "github.com/notwork/netns"
+  "github.com/notwork/veth"
+)
+
+var _ = Describe("some isolated testing", func() {
+
+	It("connects two temporary network namespaces", func() {
+		dupondNetns := netns.NewTransient()
+		dupontNetns := netns.NewTransient()
+		var dupond, dupont netlink.Link
+		netns.Execute(dupondNetns, func() {
+			dupond, dupont = veth.NewTransient(WithPeerNamespace(dupontNetns))
+		})
+	})
+
+})
+```
+
+As for the names of the VETH pair end variables, please refer to [Dupond et
+Dupont](https://en.wikipedia.org/wiki/Thomson_and_Thompson).
+
 
 ## Make Targets
 
