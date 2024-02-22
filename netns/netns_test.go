@@ -20,11 +20,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/thediveo/notwork/dummy"
+	"github.com/vishvananda/netlink"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/thediveo/fdooze"
 	. "github.com/thediveo/success"
-	"golang.org/x/sys/unix"
 )
 
 var _ = Describe("transient network namespaces", Ordered, func() {
@@ -65,8 +67,6 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 		Expect(homeIno).To(Equal(Ino("/proc/self/ns/net")))
 
 		netnsfd := NewTransient()
-		defer unix.Close(netnsfd)
-
 		netnsIno := Ino(netnsfd)
 		Expect(netnsIno).NotTo(BeZero())
 		Expect(netnsIno).NotTo(Equal(homeIno))
@@ -83,12 +83,23 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 
 	It("executes a function in a different network namespace", func() {
 		netnsfd := NewTransient()
-		defer unix.Close(netnsfd)
 		netnsIno := Ino(netnsfd)
 		var currentnetnsIno uint64
 		Execute(netnsfd, func() { currentnetnsIno = Ino("/proc/thread-self/ns/net") })
 		Expect(currentnetnsIno).NotTo(BeZero())
 		Expect(currentnetnsIno).To(Equal(netnsIno))
+	})
+
+	It("returns a netlink handle for a network namespace fd reference", func() {
+		netnsfd := NewTransient()
+		var dmy netlink.Link
+		Execute(netnsfd, func() {
+			dmy = dummy.NewTransient()
+		})
+		h := NewNetlinkHandle(netnsfd)
+		defer h.Close()
+		Expect(Successful(h.LinkByName(dmy.Attrs().Name)).Attrs().Name).
+			To(Equal(dmy.Attrs().Name))
 	})
 
 })
