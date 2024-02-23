@@ -60,6 +60,52 @@ var _ = Describe("creates transient network interfaces", func() {
 				MatchError("Link not found"))
 		})
 
+		It("properly creates a transient network interface in a different network namespace", func() {
+			netnsfd := netns.NewTransient()
+			templ := &netlink.Dummy{
+				LinkAttrs: netlink.LinkAttrs{
+					Namespace: netlink.NsFd(netnsfd),
+				},
+			}
+			var dl netlink.Link
+			DeferCleanup(func() {
+				var err error
+				netns.Execute(netnsfd, func() {
+					_, err = netlink.LinkByName(dl.Attrs().Name)
+				})
+				Expect(err).To(HaveOccurred(), "network interface wasn't removed")
+			})
+			dl = NewTransient(templ, dummyPrefix)
+
+			Expect(netlink.LinkByName(dl.Attrs().Name)).Error().To(HaveOccurred())
+			var netnsdl netlink.Link
+			var err error
+			netns.Execute(netnsfd, func() {
+				netnsdl, err = netlink.LinkByName(dl.Attrs().Name)
+			})
+			Expect(err).NotTo(HaveOccurred(), "network interface went missing")
+			Expect(netnsdl.Attrs().Name).To(Equal(dl.Attrs().Name))
+		})
+
+		It("rejects invalid network namespace references", func() {
+			templ := &netlink.Dummy{
+				LinkAttrs: netlink.LinkAttrs{
+					Namespace: "42",
+				},
+			}
+			oldfail := fail
+			var msg string
+			fail = func(message string, callerSkip ...int) {
+				msg = message
+				panic("canary")
+			}
+			Expect(func() {
+				_ = NewTransient(templ, dummyPrefix)
+			}).To(PanicWith("canary"))
+			fail = oldfail
+			Expect(msg).To(Equal("link.Attrs().Namespace reference must be nil or a netlink.NsFd"))
+		})
+
 	})
 
 	It("creates two independent transient network interfaces", func() {
@@ -97,7 +143,7 @@ var _ = Describe("creates transient network interfaces", func() {
 			}
 			runtime.UnlockOSThread()
 		})
-		unix.Unshare(unix.CLONE_NEWNET)
+		Expect(unix.Unshare(unix.CLONE_NEWNET)).To(Succeed())
 
 		By("creating a transient network interface")
 		_ = NewTransient(&netlink.Dummy{}, dummyPrefix)
@@ -143,7 +189,7 @@ var _ = Describe("creates transient network interfaces", func() {
 			g := NewGomega(func(message string, callerSkip ...int) {
 				msg = message
 			})
-			netlink.LinkSetUp(mcvlan)
+			_ = netlink.LinkSetUp(mcvlan)
 			ensureUp(g, mcvlan)
 			Expect(msg).To(BeEmpty())
 
