@@ -25,6 +25,7 @@ import (
 
 	"github.com/jinzhu/copier"
 	"github.com/vishvananda/netlink"
+	"github.com/vishvananda/netns"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -50,18 +51,38 @@ var fail = Fail // allow testing Fails without terminally failing the current te
 //
 // NewTransient remembers the network namespace the network interface was
 // created in, so that it can correctly clean up the transient network interface
-// later from one of Ginkgo's deferred cleanup handlers.
+// later from one of Ginkgo's deferred cleanup handlers. This also covers the
+// situation where the passed in link details reference a network namespace (in
+// form of an open fd) different from the current network namespace.
 func NewTransient(link netlink.Link, prefix string) netlink.Link {
 	GinkgoHelper()
 
 	Expect(link).NotTo(BeNil(), "need a non-nil link description")
+	if _, ok := link.Attrs().Namespace.(netlink.NsFd); link.Attrs().Namespace != nil && !ok {
+		fail("link.Attrs().Namespace reference must be nil or a netlink.NsFd")
+	}
+
 	newlink := reflect.New(reflect.ValueOf(link).Elem().Type()).Interface().(netlink.Link)
 	Expect(copier.CopyWithOption(newlink, link, copier.Option{DeepCopy: true, IgnoreEmpty: true})).
 		To(Succeed())
 	link = newlink
 
-	netnsh, err := netlink.NewHandle()
-	Expect(err).NotTo(HaveOccurred(), "cannot create NETLINK handle")
+	// We want to keep a netlink handle to the network namespace where the
+	// network interface is to be created in, in order to later remove it in the
+	// deferred cleanup handler. Now, the link information passed in may
+	// reference a network namespace different from the current network
+	// namespace, so we need to take care to get the netlink handle in the
+	// correct network namespace.
+	var netnsh *netlink.Handle
+	var err error
+	if link.Attrs().Namespace == nil {
+		netnsh, err = netlink.NewHandle()
+		Expect(err).NotTo(HaveOccurred(), "cannot create NETLINK handle")
+	} else {
+		// Type assertion is guarded by BeAssignableToTypeOf assertion above.
+		netnsh, err = netlink.NewHandleAt(netns.NsHandle(link.Attrs().Namespace.(netlink.NsFd)))
+		Expect(err).NotTo(HaveOccurred(), "cannot create NETLINK handle")
+	}
 	defer func() {
 		// Only close the netlink handle when it wasn't captured for a deferred
 		// cleanup and thus hasn't been set to nil.
@@ -88,6 +109,9 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 		if err == nil {
 			// Phew, this worked.
 			By(fmt.Sprintf("creating a transient network interface %q", link.Attrs().Name))
+			// Note that in case of VETH pairs we only need to remove one end in
+			// order to also remove the other end automatically. No dangling
+			// virtual wires.
 			{
 				netnsh := netnsh // the deferred cleanup closure must capture the handle value copy.
 				DeferCleanup(func() {
