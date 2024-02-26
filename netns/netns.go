@@ -95,6 +95,9 @@ func execute(g Gomega, netnsfd int, fn func()) {
 // Current returns a file descriptor referencing the current network namespace.
 // In particular, the current network namespace of the OS-level thread of the
 // caller's Go routine (which should ideally be thread-locked).
+//
+// Important: close the returned file descriptor when not needed any longer
+// using [unix.Close].
 func Current() int {
 	GinkgoHelper()
 

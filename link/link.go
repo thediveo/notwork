@@ -26,6 +26,7 @@ import (
 	"github.com/jinzhu/copier"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
+	"golang.org/x/sys/unix"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -42,8 +43,10 @@ var fail = Fail // allow testing Fails without terminally failing the current te
 // Only the returned link description correctly references the newly created
 // network interface (“link”).
 //
-// The newly created transient link starts in down operational state. Use
-// [netlink.LinkSetUp] to bring its operational state “up”.
+// The newly created transient link starts in down operational state, unless
+// [netlink.LinkAttrs.Flags] has [net.FlagUp]. Alternatively, use
+// [netlink.LinkSetUp] to bring its operational state “up” in a guaranteed
+// manner.
 //
 // If VETH link information is passed in, NewTransient will automatically
 // populate the [netlink.Veth.PeerName] with a name that also begins with the
@@ -74,9 +77,13 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 	// namespace, so we need to take care to get the netlink handle in the
 	// correct network namespace.
 	var netnsh *netlink.Handle
+	var netnsfd int = -1
 	var err error
 	if link.Attrs().Namespace == nil {
-		netnsh, err = netlink.NewHandle()
+		var err error
+		netnsfd, err = unix.Open("/proc/thread-self/ns/net", unix.O_RDONLY, 0)
+		Expect(err).NotTo(HaveOccurred(), "cannot determine current network namespace from procfs")
+		netnsh, err = netlink.NewHandleAt(netns.NsHandle(netnsfd))
 		Expect(err).NotTo(HaveOccurred(), "cannot create NETLINK handle")
 	} else {
 		// Type assertion is guarded by BeAssignableToTypeOf assertion above.
@@ -88,6 +95,11 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 		// cleanup and thus hasn't been set to nil.
 		if netnsh != nil {
 			netnsh.Close()
+		}
+		// Also close the fd referencing the current network namespace, if
+		// needed.
+		if netnsfd >= 0 {
+			_ = unix.Close(netnsfd)
 		}
 	}()
 
@@ -114,9 +126,13 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 			// virtual wires.
 			{
 				netnsh := netnsh // the deferred cleanup closure must capture the handle value copy.
+				netnsfd := netnsfd
 				DeferCleanup(func() {
 					defer func() {
-						netnsh.Close() // finally release the netlink handle
+						netnsh.Close()    // finally release the netlink handle
+						if netnsfd >= 0 { // ...and the optional current netns fd reference
+							_ = unix.Close(netnsfd)
+						}
 					}()
 					By(fmt.Sprintf("removing transient network interface %q", link.Attrs().Name))
 					Expect(netnsh.LinkDel(link)).To(Succeed(), "cannot remove transient network interface %q", link.Attrs().Name)
@@ -124,8 +140,10 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 			}
 			// tell the deferred handler (this is NOT the DeferCleanup handler)
 			// to not close the netlink handle as it is still needed later by
-			// the deferred cleanup handler.
+			// the deferred cleanup handler. Same for the fd reference to the
+			// current network namespace where needed.
 			netnsh = nil
+			netnsfd = -1
 			return link
 		}
 		if !errors.Is(err, os.ErrExist) {
