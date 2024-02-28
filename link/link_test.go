@@ -45,6 +45,8 @@ var _ = Describe("creates transient network interfaces", func() {
 			nifname := base62Nifname(prefix)
 			Expect(nifname).To(HaveLen(maxNifnameLen))
 			Expect(nifname).To(HavePrefix(prefix))
+			Expect(nifname).NotTo(ContainSubstring(" "))
+			Expect(nifname).NotTo(ContainSubstring("\x00"))
 		})
 
 		It("respects length restrictions", func() {

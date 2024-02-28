@@ -37,30 +37,45 @@ var fail = Fail // allow testing Fails without terminally failing the current te
 // the type of the link value passed in) and with a name that begins with the
 // given prefix and a random string of digits and uppercase and lowercase ASCII
 // letters. These random network interface names will always be the maximum
-// allowed length by LinuL of 15 ASCII characters.
+// allowed length of 15 ASCII characters by the Linux kernel.
 //
 // The newly created link is automatically scheduled for deletion using Ginko's
 // DeferCleanup.
 //
-// The passed link description is deep-copied first and thus never modified.
-// Only the returned link description correctly references the newly created
-// network interface (“link”).
+// For typical use cases, you might want to look at these convenience functions
+// instead:
+//   - [github.com/thediveo/notwork/dummy.CreateTransient]
+//   - [github.com/thediveo/notwork/macvlan.CreateTransient]
+//   - [github.com/thediveo/notwork/veth.CreateTransient]
+//
+// The passed-in link description is deep-copied first and thus taken as a
+// template, but never modified. On success, the returned link description then
+// correctly references the newly created virtual network interface (“link”).
 //
 // The newly created transient link starts in down operational state, unless
 // [netlink.LinkAttrs.Flags] has [net.FlagUp]. Alternatively, use
-// [netlink.LinkSetUp] to bring its operational state “up” in a guaranteed
-// manner.
+// [netlink.LinkSetUp] to bring the interface's operational state “up” in a
+// guaranteed manner.
 //
 // If VETH link information is passed in, NewTransient will automatically
 // populate the [netlink.Veth.PeerName] with a name that also begins with the
-// given prefix and a random string of up to 10 hex digits, but at least 4 hex
-// digits. In consequence, the prefix length can
+// given prefix and a random string of digits and lowercase and uppercase ASCII
+// letters filling up the remaining part up to the maximum allowed interface
+// name length in Linux.
 //
 // NewTransient remembers the network namespace the network interface was
 // created in, so that it can correctly clean up the transient network interface
 // later from one of Ginkgo's deferred cleanup handlers. This also covers the
 // situation where the passed in link details reference a network namespace (in
 // form of an open fd) different from the current network namespace.
+//
+// By setting the passed-in [netlink.Attrs.Namespace] and/or
+// [netlink.Veth.PeerNamespace] it is possible to create the new virtual network
+// in a different network namespace than the caller's current network namespace.
+// The current network namespace still can play a role, such as when creating a
+// MACVLAN network interface: then, the MACVLAN's parent network interface
+// reference (in form of an interface index) must be in the scope of the current
+// network namespace.
 func NewTransient(link netlink.Link, prefix string) netlink.Link {
 	GinkgoHelper()
 
@@ -80,12 +95,14 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 	// reference a network namespace different from the current network
 	// namespace, so we need to take care to get the netlink handle in the
 	// correct network namespace.
-	var netnsh *netlink.Handle
-	var netnsfd int = -1
+	var netnsh *netlink.Handle // ...that should be needed till the end.
 	var err error
 	if link.Attrs().Namespace == nil {
-		var err error
-		netnsfd, err = unix.Open("/proc/thread-self/ns/net", unix.O_RDONLY, 0)
+		// Avoid promoting a potential circular dependency, so we get the
+		// reference to the current network namespace by hand instead of using
+		// the convenience function from the netns package.
+		netnsfd, err := unix.Open("/proc/thread-self/ns/net", unix.O_RDONLY, 0)
+		defer unix.Close(netnsfd)
 		Expect(err).NotTo(HaveOccurred(), "cannot determine current network namespace from procfs")
 		netnsh, err = netlink.NewHandleAt(netns.NsHandle(netnsfd))
 		Expect(err).NotTo(HaveOccurred(), "cannot create NETLINK handle")
@@ -95,15 +112,10 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 		Expect(err).NotTo(HaveOccurred(), "cannot create NETLINK handle")
 	}
 	defer func() {
-		// Only close the netlink handle when it wasn't captured for a deferred
-		// cleanup and thus hasn't been set to nil.
+		// Only close the netlink handle when it wasn't captured for a (Ginkgo)
+		// deferred cleanup and thus hasn't been set to nil.
 		if netnsh != nil {
 			netnsh.Close()
-		}
-		// Also close the fd referencing the current network namespace, if
-		// needed.
-		if netnsfd >= 0 {
-			_ = unix.Close(netnsfd)
 		}
 	}()
 
@@ -117,40 +129,36 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 			peername := base62Nifname(prefix)
 			veth.PeerName = peername
 		}
-		// Try to create the link a see what happens...
+		// Try to create the link and let's see what happens...
 		err := netlink.LinkAdd(link)
-		if err == nil {
-			// Phew, this worked.
-			By(fmt.Sprintf("creating a transient network interface %q", link.Attrs().Name))
-			// Note that in case of VETH pairs we only need to remove one end in
-			// order to also remove the other end automatically. No dangling
-			// virtual wires.
-			{
-				netnsh := netnsh // the deferred cleanup closure must capture the handle value copy.
-				netnsfd := netnsfd
-				DeferCleanup(func() {
-					defer func() {
-						netnsh.Close()    // finally release the netlink handle
-						if netnsfd >= 0 { // ...and the optional current netns fd reference
-							_ = unix.Close(netnsfd)
-						}
-					}()
-					By(fmt.Sprintf("removing transient network interface %q", link.Attrs().Name))
-					Expect(netnsh.LinkDel(link)).To(Succeed(), "cannot remove transient network interface %q", link.Attrs().Name)
-				})
+		if err != nil {
+			// did we run just run into an accidentally duplicate random name,
+			// or into a general error instead?
+			if errors.Is(err, os.ErrExist) {
+				continue
 			}
-			// tell the deferred handler (this is NOT the DeferCleanup handler)
-			// to not close the netlink handle as it is still needed later by
-			// the deferred cleanup handler. Same for the fd reference to the
-			// current network namespace where needed.
-			netnsh = nil
-			netnsfd = -1
-			return link
-		}
-		if !errors.Is(err, os.ErrExist) {
 			fail(fmt.Sprintf("cannot create a transient network interface of type %q, reason: %v", link.Type(), err))
-			return nil // not reachable
 		}
+		// Phew, this worked.
+		By(fmt.Sprintf("creating a transient network interface %q", link.Attrs().Name))
+		// Note that in case of VETH pairs we only need to remove one end in
+		// order to also remove the other end automatically. No dangling
+		// virtual wires.
+		{
+			netnsh := netnsh // the deferred cleanup closure must capture the handle value copy.
+			DeferCleanup(func() {
+				defer func() {
+					netnsh.Close() // finally release the netlink handle
+				}()
+				By(fmt.Sprintf("removing transient network interface %q", link.Attrs().Name))
+				Expect(netnsh.LinkDel(link)).To(Succeed(), "cannot remove transient network interface %q", link.Attrs().Name)
+			})
+		}
+		// tell the deferred handler (this is NOT the DeferCleanup handler)
+		// to not close the netlink handle as it is still needed later by
+		// the deferred cleanup handler.
+		netnsh = nil
+		return link
 	}
 	fail(fmt.Sprintf("too many failed attempts to create a transient network interface of type %q", link.Type()))
 	return nil // not reachable
