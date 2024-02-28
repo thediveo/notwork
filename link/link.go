@@ -15,10 +15,9 @@
 package link
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"reflect"
 	"time"
@@ -28,16 +27,20 @@ import (
 	"github.com/vishvananda/netns"
 	"golang.org/x/sys/unix"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo/v2" //lint:ignore ST1001 rule does not apply
+	. "github.com/onsi/gomega"    //lint:ignore ST1001 rule does not apply
 )
 
 var fail = Fail // allow testing Fails without terminally failing the current test.
 
 // NewTransient creates a transient network interface of the specified type (via
 // the type of the link value passed in) and with a name that begins with the
-// given prefix and a random string of 10 hex digits. The newly created link is
-// additionally scheduled for deletion using Ginko's DeferCleanup.
+// given prefix and a random string of digits and uppercase and lowercase ASCII
+// letters. These random network interface names will always be the maximum
+// allowed length by LinuL of 15 ASCII characters.
+//
+// The newly created link is automatically scheduled for deletion using Ginko's
+// DeferCleanup.
 //
 // The passed link description is deep-copied first and thus never modified.
 // Only the returned link description correctly references the newly created
@@ -50,7 +53,8 @@ var fail = Fail // allow testing Fails without terminally failing the current te
 //
 // If VETH link information is passed in, NewTransient will automatically
 // populate the [netlink.Veth.PeerName] with a name that also begins with the
-// given prefix and a random string of 10 hex digits.
+// given prefix and a random string of up to 10 hex digits, but at least 4 hex
+// digits. In consequence, the prefix length can
 //
 // NewTransient remembers the network namespace the network interface was
 // created in, so that it can correctly clean up the transient network interface
@@ -103,17 +107,14 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 		}
 	}()
 
-	randbytes := make([]byte, 5)
 	for attempt := 1; attempt <= 10; attempt++ {
 		// Roll the dice to create a (new) random interface name...
-		Expect(rand.Read(randbytes)).Error().NotTo(HaveOccurred())
-		ifname := prefix + hex.EncodeToString(randbytes)
+		ifname := base62Nifname(prefix)
 		link.Attrs().Name = ifname
 		// If this is going to be a VETH peer-to-peer link, then also roll the
 		// dice to create a random peer interface name...
 		if veth, ok := link.(*netlink.Veth); ok {
-			Expect(rand.Read(randbytes)).Error().NotTo(HaveOccurred())
-			peername := prefix + hex.EncodeToString(randbytes)
+			peername := base62Nifname(prefix)
 			veth.PeerName = peername
 		}
 		// Try to create the link a see what happens...
@@ -180,4 +181,31 @@ func ensureUp(g Gomega, link netlink.Link, within ...time.Duration) {
 		return lnk.Attrs().OperState
 	}).Within(atmost).ProbeEvery(100 * time.Millisecond).
 		Should(Equal(netlink.LinkOperState(netlink.OperUp)))
+}
+
+// Maximum allowed length for Linux network interface names.
+const maxNifnameLen = 15
+
+// Minimum of random base63 characters required.
+const minRandomLen = 4
+
+// The set of characters to create a random string from.
+const base62chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+// base62Nifname returns a random network interface name consisting of the
+// specified prefix and a random string, and of the maximum length allowed for
+// network interface names. The random string part consists of only digits as
+// well as lowercase and uppercase ASCII letters.
+func base62Nifname(prefix string) string {
+	GinkgoHelper()
+	if len(prefix) > maxNifnameLen-minRandomLen {
+		fail(fmt.Sprintf("cannot create random network interface name, because prefix %q is longer than %d characters",
+			prefix, maxNifnameLen-4))
+	}
+	name := make([]byte, maxNifnameLen)
+	copy(name, prefix)
+	for idx := len(prefix); idx < maxNifnameLen; idx++ {
+		name[idx] = base62chars[rand.Intn(len(base62chars))]
+	}
+	return string(name)
 }

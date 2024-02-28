@@ -38,6 +38,31 @@ var _ = Describe("creates transient network interfaces", func() {
 		}
 	})
 
+	When("creating random network interface names", func() {
+
+		It("creates a random name with a prefix", func() {
+			const prefix = "prefix-"
+			nifname := base62Nifname(prefix)
+			Expect(nifname).To(HaveLen(maxNifnameLen))
+			Expect(nifname).To(HavePrefix(prefix))
+		})
+
+		It("respects length restrictions", func() {
+			oldfail := fail
+			var msg string
+			fail = func(message string, callerSkip ...int) {
+				msg = message
+				panic("canary")
+			}
+			Expect(func() {
+				_ = base62Nifname("a-very-long-prefix-that-breaks-the-box")
+			}).To(PanicWith("canary"))
+			fail = oldfail
+			Expect(msg).To(HavePrefix("cannot create random network interface name"))
+		})
+
+	})
+
 	Context("creating transient network interfaces and registering them for destruction", Ordered, func() {
 
 		var dl netlink.Link
