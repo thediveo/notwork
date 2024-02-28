@@ -26,6 +26,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gleak/goroutine"
 	. "github.com/thediveo/fdooze"
 	. "github.com/thediveo/success"
 )
@@ -179,6 +180,23 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		Execute(netnsB, func() { _, err = netlink.LinkByName(vethA.(*netlink.Veth).PeerName) })
 		Expect(err).NotTo(HaveOccurred())
+	})
+
+	When("running Ginkgo test leaf nodes", Ordered, func() {
+
+		var gid uint64
+
+		It("gets a first go routine", func() {
+			gid = goroutine.Current().ID
+			Expect(gid).NotTo(BeZero())
+		})
+
+		It("runs this unit test on a different go routine", func() {
+			gid2 := goroutine.Current().ID
+			Expect(gid2).NotTo(BeZero())
+			Expect(gid2).NotTo(Equal(gid))
+		})
+
 	})
 
 })
