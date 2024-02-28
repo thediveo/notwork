@@ -22,8 +22,8 @@ import (
 	nlnetns "github.com/vishvananda/netns"
 	"golang.org/x/sys/unix"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo/v2" //lint:ignore ST1001 rule does not apply
+	. "github.com/onsi/gomega"    //lint:ignore ST1001 rule does not apply
 )
 
 // EnterTransient creates and enters a new (and isolated) network namespace,
