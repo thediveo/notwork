@@ -20,13 +20,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/onsi/gomega/gleak/goroutine"
 	"github.com/thediveo/notwork/dummy"
 	"github.com/thediveo/notwork/link"
 	"github.com/vishvananda/netlink"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gleak/goroutine"
+	. "github.com/onsi/gomega/gleak"
 	. "github.com/thediveo/fdooze"
 	. "github.com/thediveo/success"
 )
@@ -38,10 +39,26 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 			Skip("needs root")
 		}
 		goodfds := Filedescriptors()
+		goodgos := Goroutines()
 		DeferCleanup(func() {
+			Eventually(Goroutines).Within(2 * time.Second).ProbeEvery(250 * time.Millisecond).
+				ShouldNot(HaveLeaked(goodgos))
 			Eventually(Filedescriptors).Within(2 * time.Second).ProbeEvery(250 * time.Millisecond).
 				ShouldNot(HaveLeakedFds(goodfds))
 		})
+	})
+
+	It("returns a fd reference and cleans it up", func() {
+		beforefds := []any{}
+		for _, fd := range Filedescriptors() {
+			beforefds = append(beforefds, fd.FdNo())
+		}
+		netnsfd := Current()
+		afterfds := []any{}
+		for _, fd := range Filedescriptors() {
+			afterfds = append(afterfds, fd.FdNo())
+		}
+		Expect(afterfds).To(ConsistOf(append(beforefds, netnsfd)...))
 	})
 
 	It("creates, enters, and leaves a transient network namespace", func() {

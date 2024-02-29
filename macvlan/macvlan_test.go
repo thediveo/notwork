@@ -16,11 +16,14 @@ package macvlan
 
 import (
 	"os"
+	"time"
 
 	"github.com/thediveo/notwork/dummy"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gleak"
+	. "github.com/thediveo/fdooze"
 )
 
 var _ = Describe("provides transient MACVLAN network interfaces", Ordered, func() {
@@ -29,6 +32,14 @@ var _ = Describe("provides transient MACVLAN network interfaces", Ordered, func(
 		if os.Getuid() != 0 {
 			Skip("needs root")
 		}
+		goodfds := Filedescriptors()
+		goodgos := Goroutines()
+		DeferCleanup(func() {
+			Eventually(Goroutines).Within(2 * time.Second).ProbeEvery(250 * time.Millisecond).
+				ShouldNot(HaveLeaked(goodgos))
+			Eventually(Filedescriptors).Within(2 * time.Second).ProbeEvery(250 * time.Millisecond).
+				ShouldNot(HaveLeakedFds(goodfds))
+		})
 	})
 
 	It("creates a MACVLAN with a dummy parent", func() {

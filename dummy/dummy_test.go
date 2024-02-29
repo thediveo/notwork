@@ -16,11 +16,14 @@ package dummy
 
 import (
 	"os"
+	"time"
 
 	"github.com/vishvananda/netlink"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gleak"
+	. "github.com/thediveo/fdooze"
 	. "github.com/thediveo/success"
 )
 
@@ -30,6 +33,15 @@ var _ = Describe("creating transient dummy network interfaces", func() {
 		if os.Getuid() != 0 {
 			Skip("needs root")
 		}
+
+		goodfds := Filedescriptors()
+		goodgos := Goroutines()
+		DeferCleanup(func() {
+			Eventually(Goroutines).Within(2 * time.Second).ProbeEvery(100 * time.Millisecond).
+				ShouldNot(HaveLeaked(goodgos))
+			Eventually(Filedescriptors).Within(2 * time.Second).ProbeEvery(100 * time.Millisecond).
+				ShouldNot(HaveLeakedFds(goodfds))
+		})
 	})
 
 	It("creates a transient dummy network interface and brings it up", func() {
