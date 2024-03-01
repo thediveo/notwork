@@ -61,10 +61,7 @@ var _ = Describe("provides transient VETH network interface pairs", Ordered, fun
 	It("creates a VETH pair in the different network namespaces", func() {
 		dupondNetns := netns.NewTransient()
 		dupontNetns := netns.NewTransient()
-		var dupond, dupont netlink.Link
-		netns.Execute(dupondNetns, func() {
-			dupond, dupont = NewTransient(WithPeerNamespace(dupontNetns))
-		})
+		dupond, dupont := NewTransient(InNamespace(dupondNetns), WithPeerNamespace(dupontNetns))
 		Expect(dupond).NotTo(BeNil())
 		Expect(dupont).NotTo(BeNil())
 		Expect(dupond.Attrs().Name).To(HavePrefix(VethPrefix))

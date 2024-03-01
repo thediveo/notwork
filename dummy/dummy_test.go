@@ -15,6 +15,7 @@
 package dummy
 
 import (
+	"errors"
 	"os"
 	"time"
 
@@ -26,6 +27,14 @@ import (
 	. "github.com/thediveo/fdooze"
 	. "github.com/thediveo/success"
 )
+
+var canaryErr = errors.New("cheep cheep")
+
+func withFailingOpt() Opt {
+	return func(l netlink.Link) error {
+		return canaryErr
+	}
+}
 
 var _ = Describe("creating transient dummy network interfaces", func() {
 
@@ -44,6 +53,11 @@ var _ = Describe("creating transient dummy network interfaces", func() {
 		})
 	})
 
+	It("throws a tantrum when an option fails", func() {
+		Expect(InterceptGomegaFailure(func() { _ = NewTransient(withFailingOpt()) })).
+			To(MatchError(ContainSubstring(canaryErr.Error())))
+	})
+
 	It("creates a transient dummy network interface and brings it up", func() {
 		dl := NewTransientUp()
 		Expect(dl.Attrs().Name).To(And(
@@ -53,6 +67,16 @@ var _ = Describe("creating transient dummy network interfaces", func() {
 		// Check that the network interface was in fact created.
 		ql := Successful(netlink.LinkByIndex(dl.Attrs().Index))
 		Expect(ql.Attrs().OperState).NotTo(Equal(netlink.OperDown))
+	})
+
+	When("using options", func() {
+
+		It("configures a different netns", func() {
+			l := &netlink.Dummy{}
+			Expect(InNamespace(-42)(l)).To(Succeed())
+			Expect(l.Namespace).To(Equal(netlink.NsFd(-42)))
+		})
+
 	})
 
 })

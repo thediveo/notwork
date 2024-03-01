@@ -25,14 +25,21 @@ import (
 // DummyPrefix is the name prefix used for transient dummy network interfaces.
 const DummyPrefix = "dumy-"
 
+// Opt is a configuration option when creating a new dummy network interface.
+type Opt func(netlink.Link) error
+
 // NewTransient creates a transient network interface of type “[dummy]”. It does
 // not configure any IP address(es) though. NewTransient automatically defers
 // proper automatic removal of the dummy network interface.
 //
 // [dummy]: https://tldp.org/LDP/nag/node72.html
-func NewTransient() netlink.Link {
+func NewTransient(opts ...Opt) netlink.Link {
 	GinkgoHelper()
-	return link.NewTransient(&netlink.Dummy{}, DummyPrefix)
+	dummy := &netlink.Dummy{}
+	for _, opt := range opts {
+		Expect(opt(dummy)).To(Succeed())
+	}
+	return link.NewTransient(dummy, DummyPrefix)
 }
 
 // NewTransientUp creates a transient network interface of type “[dummy]” and
@@ -41,10 +48,20 @@ func NewTransient() netlink.Link {
 // network interface.
 //
 // [dummy]: https://tldp.org/LDP/nag/node72.html
-func NewTransientUp() netlink.Link {
+func NewTransientUp(opts ...Opt) netlink.Link {
 	GinkgoHelper()
-	dummy := NewTransient()
+	dummy := NewTransient(opts...)
 	Expect(netlink.LinkSetUp(dummy)).To(
 		Succeed(), "cannot bring transient interface %q up", dummy.Attrs().Name)
 	return dummy
+}
+
+// InNamespace configures a dummy network interface to be created in the network
+// namespace referenced by fdref, instead of creating it in the current network
+// namespace.
+func InNamespace(fdref int) Opt {
+	return func(l netlink.Link) error {
+		l.Attrs().Namespace = netlink.NsFd(fdref)
+		return nil
+	}
 }

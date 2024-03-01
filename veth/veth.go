@@ -27,6 +27,8 @@ import (
 // VethPrefix is the name prefix used for transient VETH network interfaces.
 const VethPrefix = "veth-"
 
+// Opt is a configuration option when creating a new pair of VETH network
+// interfaces.
 type Opt func(*netlink.Veth) error
 
 // NewTransient creates and returns a new (and transient) VETH pair of network
@@ -53,6 +55,18 @@ func NewTransient(opts ...Opt) (dupond netlink.Link, dupont netlink.Link) {
 	}
 	dupont = Successful(netlink.LinkByName(dupond.(*netlink.Veth).PeerName))
 	return
+}
+
+// InNamespace configures the “first” VETH network interface to be created in
+// the network namespace referenced by fdref, instead of creating it in the
+// current network namespace. The “second” VETH network interface will be
+// created in the current network namespace, use [WithPeerNamespace] to create
+// this end in a different network namespace.
+func InNamespace(fdref int) Opt {
+	return func(l *netlink.Veth) error {
+		l.Namespace = netlink.NsFd(fdref)
+		return nil
+	}
 }
 
 // WithPeerNamespace configures the VETH peer end to be created inside the
