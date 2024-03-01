@@ -15,14 +15,26 @@
 package dummy
 
 import (
+	"errors"
 	"os"
+	"time"
 
 	"github.com/vishvananda/netlink"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gleak"
+	. "github.com/thediveo/fdooze"
 	. "github.com/thediveo/success"
 )
+
+var canaryErr = errors.New("cheep cheep")
+
+func withFailingOpt() Opt {
+	return func(l netlink.Link) error {
+		return canaryErr
+	}
+}
 
 var _ = Describe("creating transient dummy network interfaces", func() {
 
@@ -30,6 +42,20 @@ var _ = Describe("creating transient dummy network interfaces", func() {
 		if os.Getuid() != 0 {
 			Skip("needs root")
 		}
+
+		goodfds := Filedescriptors()
+		goodgos := Goroutines()
+		DeferCleanup(func() {
+			Eventually(Goroutines).Within(2 * time.Second).ProbeEvery(100 * time.Millisecond).
+				ShouldNot(HaveLeaked(goodgos))
+			Eventually(Filedescriptors).Within(2 * time.Second).ProbeEvery(100 * time.Millisecond).
+				ShouldNot(HaveLeakedFds(goodfds))
+		})
+	})
+
+	It("throws a tantrum when an option fails", func() {
+		Expect(InterceptGomegaFailure(func() { _ = NewTransient(withFailingOpt()) })).
+			To(MatchError(ContainSubstring(canaryErr.Error())))
 	})
 
 	It("creates a transient dummy network interface and brings it up", func() {
@@ -41,6 +67,16 @@ var _ = Describe("creating transient dummy network interfaces", func() {
 		// Check that the network interface was in fact created.
 		ql := Successful(netlink.LinkByIndex(dl.Attrs().Index))
 		Expect(ql.Attrs().OperState).NotTo(Equal(netlink.OperDown))
+	})
+
+	When("using options", func() {
+
+		It("configures a different netns", func() {
+			l := &netlink.Dummy{}
+			Expect(InNamespace(-42)(l)).To(Succeed())
+			Expect(l.Namespace).To(Equal(netlink.NsFd(-42)))
+		})
+
 	})
 
 })

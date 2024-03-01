@@ -25,6 +25,8 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gleak"
+	. "github.com/thediveo/fdooze"
 	. "github.com/thediveo/success"
 )
 
@@ -36,6 +38,42 @@ var _ = Describe("creates transient network interfaces", func() {
 		if os.Getuid() != 0 {
 			Skip("needs root")
 		}
+
+		goodfds := Filedescriptors()
+		goodgos := Goroutines()
+		DeferCleanup(func() {
+			Eventually(Goroutines).Within(2 * time.Second).ProbeEvery(100 * time.Millisecond).
+				ShouldNot(HaveLeaked(goodgos))
+			Eventually(Filedescriptors).Within(2 * time.Second).ProbeEvery(100 * time.Millisecond).
+				ShouldNot(HaveLeakedFds(goodfds))
+		})
+	})
+
+	When("creating random network interface names", func() {
+
+		It("creates a random name with a prefix", func() {
+			const prefix = "prefix-"
+			nifname := base62Nifname(prefix)
+			Expect(nifname).To(HaveLen(maxNifnameLen))
+			Expect(nifname).To(HavePrefix(prefix))
+			Expect(nifname).NotTo(ContainSubstring(" "))
+			Expect(nifname).NotTo(ContainSubstring("\x00"))
+		})
+
+		It("respects length restrictions", func() {
+			oldfail := fail
+			var msg string
+			fail = func(message string, callerSkip ...int) {
+				msg = message
+				panic("canary")
+			}
+			Expect(func() {
+				_ = base62Nifname("a-very-long-prefix-that-breaks-the-box")
+			}).To(PanicWith("canary"))
+			fail = oldfail
+			Expect(msg).To(HavePrefix("cannot create random network interface name"))
+		})
+
 	})
 
 	Context("creating transient network interfaces and registering them for destruction", Ordered, func() {

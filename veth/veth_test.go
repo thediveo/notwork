@@ -16,12 +16,15 @@ package veth
 
 import (
 	"os"
+	"time"
 
 	"github.com/thediveo/notwork/netns"
 	"github.com/vishvananda/netlink"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gleak"
+	. "github.com/thediveo/fdooze"
 	. "github.com/thediveo/success"
 )
 
@@ -31,6 +34,14 @@ var _ = Describe("provides transient VETH network interface pairs", Ordered, fun
 		if os.Getuid() != 0 {
 			Skip("needs root")
 		}
+		goodfds := Filedescriptors()
+		goodgos := Goroutines()
+		DeferCleanup(func() {
+			Eventually(Goroutines).Within(2 * time.Second).ProbeEvery(250 * time.Millisecond).
+				ShouldNot(HaveLeaked(goodgos))
+			Eventually(Filedescriptors).Within(2 * time.Second).ProbeEvery(250 * time.Millisecond).
+				ShouldNot(HaveLeakedFds(goodfds))
+		})
 	})
 
 	It("creates a VETH pair in the same network namespace", func() {
@@ -50,10 +61,7 @@ var _ = Describe("provides transient VETH network interface pairs", Ordered, fun
 	It("creates a VETH pair in the different network namespaces", func() {
 		dupondNetns := netns.NewTransient()
 		dupontNetns := netns.NewTransient()
-		var dupond, dupont netlink.Link
-		netns.Execute(dupondNetns, func() {
-			dupond, dupont = NewTransient(WithPeerNamespace(dupontNetns))
-		})
+		dupond, dupont := NewTransient(InNamespace(dupondNetns), WithPeerNamespace(dupontNetns))
 		Expect(dupond).NotTo(BeNil())
 		Expect(dupont).NotTo(BeNil())
 		Expect(dupond.Attrs().Name).To(HavePrefix(VethPrefix))

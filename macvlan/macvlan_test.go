@@ -16,11 +16,15 @@ package macvlan
 
 import (
 	"os"
+	"time"
 
 	"github.com/thediveo/notwork/dummy"
+	"github.com/vishvananda/netlink"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gleak"
+	. "github.com/thediveo/fdooze"
 )
 
 var _ = Describe("provides transient MACVLAN network interfaces", Ordered, func() {
@@ -29,6 +33,14 @@ var _ = Describe("provides transient MACVLAN network interfaces", Ordered, func(
 		if os.Getuid() != 0 {
 			Skip("needs root")
 		}
+		goodfds := Filedescriptors()
+		goodgos := Goroutines()
+		DeferCleanup(func() {
+			Eventually(Goroutines).Within(2 * time.Second).ProbeEvery(250 * time.Millisecond).
+				ShouldNot(HaveLeaked(goodgos))
+			Eventually(Filedescriptors).Within(2 * time.Second).ProbeEvery(250 * time.Millisecond).
+				ShouldNot(HaveLeakedFds(goodfds))
+		})
 	})
 
 	It("creates a MACVLAN with a dummy parent", func() {
@@ -38,6 +50,22 @@ var _ = Describe("provides transient MACVLAN network interfaces", Ordered, func(
 	It("finds a hardware NIC in up state", func() {
 		parent := LocateHWParent()
 		Expect(parent).NotTo(BeNil())
+	})
+
+	When("using options", func() {
+
+		It("configures a different netns", func() {
+			l := &netlink.Macvlan{}
+			Expect(InNamespace(-42)(l)).To(Succeed())
+			Expect(l.Namespace).To(Equal(netlink.NsFd(-42)))
+		})
+
+		It("configures the mode", func() {
+			l := &netlink.Macvlan{}
+			Expect(WithMode(netlink.MACVLAN_MODE_VEPA)(l)).To(Succeed())
+			Expect(l.Mode).To(Equal(netlink.MACVLAN_MODE_VEPA))
+		})
+
 	})
 
 })

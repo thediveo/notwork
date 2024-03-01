@@ -3,8 +3,10 @@
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/thediveo/notwork)](https://pkg.go.dev/github.com/thediveo/notwork)
 [![GitHub](https://img.shields.io/github/license/thediveo/notwork)](https://img.shields.io/github/license/thediveo/notwork)
 ![build and test](https://github.com/thediveo/notwork/workflows/build%20and%20test/badge.svg?branch=master)
+[![goroutines](https://img.shields.io/badge/go%20routines-not%20leaking-success)](https://pkg.go.dev/github.com/onsi/gomega/gleak)
+[![file descriptors](https://img.shields.io/badge/file%20descriptors-not%20leaking-success)](https://pkg.go.dev/github.com/thediveo/fdooze)
 [![Go Report Card](https://goreportcard.com/badge/github.com/thediveo/whalewatcher)](https://goreportcard.com/report/github.com/thediveo/notwork)
-![Coverage](https://img.shields.io/badge/Coverage-95.4%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-95.6%25-brightgreen)
 
 A tiny package to help with creating transient Linux virtual network elements
 for testing purposes. It leverages both the
@@ -28,6 +30,8 @@ var _ = Describe("some testing", func() {
 
     It("creates a transient MACVLAN with a dummy parent", func() {
         mcvlan := macvlan.NewTransient(dummy.NewTransient())
+        // ...virtual network interface will be automatically removed
+        // at the end of this test.
     })
 
 })
@@ -51,7 +55,9 @@ import (
 var _ = Describe("some isolated testing", func() {
 
     It("creates a transient MACVLAN with a dummy parent inside a throw-away netns", func() {
-        defer netns.EnterTransient()()
+        defer netns.EnterTransient()() // !!! double ()()
+        // we're not in a new transient network namespace and there's just
+        // a lonely lo at this time.
         mcvlan := macvlan.NewTransient(dummy.NewTransient())
     })
 
@@ -72,12 +78,9 @@ import (
 var _ = Describe("some isolated testing", func() {
 
 	It("connects two temporary network namespaces", func() {
-		dupondNetns := netns.NewTransient()
-		dupontNetns := netns.NewTransient()
-		var dupond, dupont netlink.Link
-		netns.Execute(dupondNetns, func() {
-			dupond, dupont = veth.NewTransient(WithPeerNamespace(dupontNetns))
-		})
+		dupondNetns := netns.NewTransient() // create, but don't enter
+		dupontNetns := netns.NewTransient() // create, but don't enter
+		dupond, dupont := veth.NewTransient(InNamespace(dupondNetns), WithPeerNamespace(dupontNetns))
 	})
 
 })

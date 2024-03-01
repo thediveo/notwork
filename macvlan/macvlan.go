@@ -18,13 +18,16 @@ import (
 	"github.com/thediveo/notwork/link"
 	"github.com/vishvananda/netlink"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo/v2" //lint:ignore ST1001 rule does not apply
+	. "github.com/onsi/gomega"    //lint:ignore ST1001 rule does not apply
 )
 
 // MacvlanPrefix is the name prefix used for transient MACVLAN network
 // interfaces.
 const MacvlanPrefix = "mcvl-"
+
+// Opt is a configuration option when creating a new MACVLAN network interface.
+type Opt func(netlink.Link) error
 
 // LocateHWParent locates a “hardware” network interface in the current network
 // namespace that is operationally up and returns it. If no suitable network
@@ -57,13 +60,16 @@ func LocateHWParent() netlink.Link {
 // hardware network interface, including the dummy kind). CreateTransient
 // automatically defers proper automatic removal of the MACVLAN network
 // interface.
-func NewTransient(parent netlink.Link) netlink.Link {
+func NewTransient(parent netlink.Link, opts ...Opt) netlink.Link {
 	GinkgoHelper()
 	mcvlan := &netlink.Macvlan{
 		LinkAttrs: netlink.LinkAttrs{
 			ParentIndex: parent.Attrs().Index,
 		},
 		Mode: netlink.MACVLAN_MODE_BRIDGE,
+	}
+	for _, opt := range opts {
+		Expect(opt(mcvlan)).To(Succeed())
 	}
 	return link.NewTransient(mcvlan, MacvlanPrefix)
 }
@@ -74,3 +80,23 @@ func NewTransient(parent netlink.Link) netlink.Link {
 //
 // Deprecated: use [NewTransient] instead.
 func CreateTransient(parent netlink.Link) netlink.Link { return NewTransient(parent) }
+
+// InNamespace configures a MACVLAN network interface to be created in the
+// network namespace referenced by fdref, instead of creating it in the current
+// network namespace.
+func InNamespace(fdref int) Opt {
+	return func(l netlink.Link) error {
+		l.Attrs().Namespace = netlink.NsFd(fdref)
+		return nil
+	}
+}
+
+// WithMode configures the MACVLAN mode.
+//
+// See also: [netlink.MacvlanMode].
+func WithMode(mode netlink.MacvlanMode) Opt {
+	return func(l netlink.Link) error {
+		l.(*netlink.Macvlan).Mode = mode
+		return nil
+	}
+}
