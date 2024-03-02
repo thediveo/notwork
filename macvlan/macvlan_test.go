@@ -43,8 +43,12 @@ var _ = Describe("provides transient MACVLAN network interfaces", Ordered, func(
 		})
 	})
 
-	It("creates a MACVLAN with a dummy parent", func() {
+	It("creates a MACVLAN with a dummy parent using legacy API", func() {
 		_ = CreateTransient(dummy.NewTransientUp())
+	})
+
+	It("creates a MACVLAN with a dummy parent and a configuration option", func() {
+		_ = NewTransient(dummy.NewTransientUp(), WithMode(netlink.MACVLAN_MODE_BRIDGE))
 	})
 
 	It("finds a hardware NIC in up state", func() {
