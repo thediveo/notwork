@@ -53,7 +53,7 @@ var _ = Describe("creates transient network interfaces", func() {
 
 		It("creates a random name with a prefix", func() {
 			const prefix = "prefix-"
-			nifname := base62Nifname(prefix)
+			nifname := RandomNifname(prefix)
 			Expect(nifname).To(HaveLen(maxNifnameLen))
 			Expect(nifname).To(HavePrefix(prefix))
 			Expect(nifname).NotTo(ContainSubstring(" "))
@@ -68,7 +68,7 @@ var _ = Describe("creates transient network interfaces", func() {
 				panic("canary")
 			}
 			Expect(func() {
-				_ = base62Nifname("a-very-long-prefix-that-breaks-the-box")
+				_ = RandomNifname("a-very-long-prefix-that-breaks-the-box")
 			}).To(PanicWith("canary"))
 			fail = oldfail
 			Expect(msg).To(HavePrefix("cannot create random network interface name"))
