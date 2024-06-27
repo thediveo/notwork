@@ -40,7 +40,7 @@ var fail = Fail // allow testing Fails without terminally failing the current te
 // allowed length of 15 ASCII characters by the Linux kernel.
 //
 // The newly created link is automatically scheduled for deletion using Ginko's
-// DeferCleanup.
+// DeferCleanup. (See also notes below.)
 //
 // For typical use cases, you might want to look at these convenience functions
 // instead:
@@ -76,6 +76,9 @@ var fail = Fail // allow testing Fails without terminally failing the current te
 // MACVLAN network interface: then, the MACVLAN's parent network interface
 // reference (in form of an interface index) must be in the scope of the current
 // network namespace.
+//
+// Do not move a link to a different network namespace, as this interferes with
+// the automated cleanup.
 func NewTransient(link netlink.Link, prefix string) netlink.Link {
 	GinkgoHelper()
 
@@ -189,6 +192,14 @@ func ensureUp(g Gomega, link netlink.Link, within ...time.Duration) {
 		return lnk.Attrs().OperState
 	}).Within(atmost).ProbeEvery(100 * time.Millisecond).
 		Should(Equal(netlink.LinkOperState(netlink.OperUp)))
+}
+
+// RandomNifname returns a network interface name consisting of the specified
+// prefix and a random string, and of the maximum length allowed for network
+// interface names. The random string part consists of only digits as well as
+// lowercase and uppercase ASCII letters.
+func RandomNifname(prefix string) string {
+	return base62Nifname(prefix)
 }
 
 // Maximum allowed length for Linux network interface names.

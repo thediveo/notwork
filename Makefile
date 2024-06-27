@@ -19,6 +19,7 @@ report: ## run goreportcard on this module
 	@scripts/goreportcard.sh
 
 test: ## run unit tests
+	sudo modprobe netdevsim
 	go test -v -p=1 -count=1 -race -exec sudo ./...
 
 vuln: ## run govulncheck
