@@ -9,6 +9,7 @@ clean: ## cleans up build and testing artefacts
 	sudo rm -f coverage-root.out
 
 coverage: ## gathers coverage and updates README badge
+	sudo modprobe netdevsim
 	@scripts/cov.sh
 
 pkgsite: ## serves Go documentation on port 6060
