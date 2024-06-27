@@ -32,13 +32,20 @@ import (
 	. "github.com/thediveo/success"
 )
 
-var _ = Describe("creates netdevsim network interfaces", func() {
+var _ = Describe("creates netdevsim network interfaces", Ordered, func() {
 
-	BeforeEach(func() {
+	BeforeAll(func() {
 		if os.Getuid() != 0 {
 			Skip("needs root")
 		}
+		_, err := os.Stat(netdevsimRoot)
+		if errors.Is(err, os.ErrNotExist) {
+			Skip("needs loaded kernel module netdevsim")
+		}
+		Expect(err).To(Succeed())
+	})
 
+	BeforeEach(func() {
 		goodfds := Filedescriptors()
 		goodgos := Goroutines()
 		DeferCleanup(func() {

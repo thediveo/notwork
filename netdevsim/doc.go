@@ -44,8 +44,8 @@ This package works around the situation by creating netdevsims with multiple
 ports piecemeal-wise, picking up the newly created ports piece by piece.
 
 [netdevsim]: https://docs.kernel.org/process/maintainer-netdev.html#netdevsim
-[Ginkgo]: https://github.com/onsi/ginkgo [Gomega]:
-https://github.com/onsi/gomega [DeferCleanup]:
-https://pkg.go.dev/github.com/onsi/ginkgo/v2#DeferCleanup
+[Ginkgo]: https://github.com/onsi/ginkgo
+[Gomega]: https://github.com/onsi/gomega
+[DeferCleanup]: https://pkg.go.dev/github.com/onsi/ginkgo/v2#DeferCleanup
 */
 package netdevsim
