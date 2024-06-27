@@ -10,6 +10,8 @@ require (
 
 require (
 	github.com/kr/pretty v0.3.1 // indirect
+	github.com/mdlayher/genetlink v0.0.0-20191008151445-a2cadeac9a63 // indirect
+	github.com/mdlayher/netlink v0.0.0-20191009155606-de872b0d824b // indirect
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 )
 
@@ -19,6 +21,7 @@ require (
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38 // indirect
 	github.com/jinzhu/copier v0.4.0
+	github.com/mdlayher/devlink v0.0.0-20191111174559-94b7996630ec
 	github.com/thediveo/fdooze v0.3.1
 	github.com/thediveo/success v1.0.2
 	github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae
