@@ -189,13 +189,23 @@ var _ = Describe("creates transient network interfaces", func() {
 
 	Context("ensuring that network interfaces are operationally up", func() {
 
+		It("expects the passed link to be non-nil", func() {
+			var r any
+			func() {
+				defer func() { r = recover() }()
+				g := NewGomega(func(message string, callerSkip ...int) {
+					panic(message)
+				})
+				ensureUp(g, nil, false)
+			}()
+			Expect(r).To(ContainSubstring("non-nil link description"))
+		})
+
 		It("doesn't accept multiple optional durations", func() {
 			var r any
 			func() {
-				defer func() {
-					r = recover()
-				}()
-				EnsureUp(nil, time.Millisecond, time.Millisecond)
+				defer func() { r = recover() }()
+				EnsureUp(&netlink.Dummy{}, time.Millisecond, time.Millisecond)
 			}()
 			Expect(r).To(ContainSubstring("single optional maximum wait duration"))
 		})
@@ -203,15 +213,25 @@ var _ = Describe("creates transient network interfaces", func() {
 		It("times out", func() {
 			// work around circular import
 			dmy := NewTransient(&netlink.Dummy{}, "tst-")
-			var msg string
-			g := NewGomega(func(message string, callerSkip ...int) {
-				msg = message
-			})
-			ensureUp(g, dmy, 100*time.Millisecond)
-			Expect(msg).To(ContainSubstring("Timed out after 0."))
 
-			ensureUp(g, dmy)
-			Expect(msg).To(ContainSubstring("Timed out after 2."))
+			var r any
+			func() {
+				defer func() { r = recover() }()
+				g := NewGomega(func(message string, callerSkip ...int) {
+					panic(message)
+				})
+				ensureUp(g, dmy, true, 100*time.Millisecond)
+			}()
+			Expect(r).To(ContainSubstring("Timed out after 0."))
+
+			func() {
+				defer func() { r = recover() }()
+				g := NewGomega(func(message string, callerSkip ...int) {
+					panic(message)
+				})
+				ensureUp(g, dmy, true)
+			}()
+			Expect(r).To(ContainSubstring("Timed out after 2."))
 		})
 
 		It("waits for operationally up", func() {
@@ -223,13 +243,16 @@ var _ = Describe("creates transient network interfaces", func() {
 				},
 				Mode: netlink.MACVLAN_MODE_BRIDGE,
 			}, "tst-")
-			var msg string
-			g := NewGomega(func(message string, callerSkip ...int) {
-				msg = message
-			})
-			_ = netlink.LinkSetUp(mcvlan)
-			ensureUp(g, mcvlan)
-			Expect(msg).To(BeEmpty())
+
+			var r any
+			func() {
+				defer func() { r = recover() }()
+				g := NewGomega(func(message string, callerSkip ...int) {
+					panic(message)
+				})
+				ensureUp(g, mcvlan, false)
+			}()
+			Expect(r).To(BeNil())
 
 		})
 

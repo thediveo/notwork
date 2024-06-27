@@ -168,15 +168,19 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 }
 
 // EnsureUp brings the specified network interface up and waits for it to become
-// operationally “UP”. The maximum wait duration can be optionally specified; it
-// defaults to 2s.
+// operationally “UP” or “UNKNOWN”. The maximum wait duration can be optionally
+// specified; it defaults to 2s.
 func EnsureUp(link netlink.Link, within ...time.Duration) {
 	GinkgoHelper()
-	ensureUp(Default, link, within...)
+	ensureUp(Default, link, false, within...)
 }
 
 // ensureUp takes an additional Gomega in order to allow unit testing it.
-func ensureUp(g Gomega, link netlink.Link, within ...time.Duration) {
+func ensureUp(g Gomega, link netlink.Link, skipup bool, within ...time.Duration) {
+	GinkgoHelper()
+
+	g.Expect(link).NotTo(BeNil(), "need a non-nil link description")
+
 	var atmost time.Duration
 	switch len(within) {
 	case 0:
@@ -187,11 +191,20 @@ func ensureUp(g Gomega, link netlink.Link, within ...time.Duration) {
 		panic("only a single optional maximum wait duration allowed")
 	}
 
-	g.Eventually(func() netlink.LinkOperState {
+	if !skipup {
+		g.Expect(netlink.LinkSetUp(link)).To(Succeed())
+	}
+	g.Eventually(func() bool {
 		lnk, _ := netlink.LinkByIndex(link.Attrs().Index)
-		return lnk.Attrs().OperState
-	}).Within(atmost).ProbeEvery(100 * time.Millisecond).
-		Should(Equal(netlink.LinkOperState(netlink.OperUp)))
+		switch lnk.Attrs().OperState {
+		case netlink.LinkOperState(netlink.OperUp):
+			return true
+		case netlink.LinkOperState(netlink.OperUnknown):
+			return true
+		}
+		return false
+	}).Within(atmost).ProbeEvery(20 * time.Millisecond).
+		Should(BeTrue())
 }
 
 // RandomNifname returns a network interface name consisting of the specified
