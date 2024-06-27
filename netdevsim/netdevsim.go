@@ -57,6 +57,12 @@ const (
 	netdevsimDevicePrefix = "netdevsim"
 )
 
+// HasNetdevsim returns true if netdevsims are available on this host.
+func HasNetdevsim() bool {
+	_, err := os.Stat(netdevsimRoot)
+	return err == nil
+}
+
 // NewTransient creates a transient netdevsim device as well as at least one
 // “port” network interface. The number of port network interfaces and the
 // amount of RX+TX queue sets can be specified through options passed in opts.
