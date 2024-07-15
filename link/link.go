@@ -195,7 +195,10 @@ func ensureUp(g Gomega, link netlink.Link, skipup bool, within ...time.Duration)
 		g.Expect(netlink.LinkSetUp(link)).To(Succeed())
 	}
 	g.Eventually(func() bool {
-		lnk, _ := netlink.LinkByIndex(link.Attrs().Index)
+		lnk, err := netlink.LinkByIndex(link.Attrs().Index)
+		if err != nil {
+			StopTrying("link cannot come up").Wrap(err).Now()
+		}
 		switch lnk.Attrs().OperState {
 		case netlink.LinkOperState(netlink.OperUp):
 			return true
