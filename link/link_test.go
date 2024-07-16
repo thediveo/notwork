@@ -210,6 +210,18 @@ var _ = Describe("creates transient network interfaces", func() {
 			Expect(r).To(ContainSubstring("single optional maximum wait duration"))
 		})
 
+		It("stops when there is no chance left", func() {
+			var r any
+			func() {
+				defer func() { r = recover() }()
+				g := NewGomega(func(message string, callerSkip ...int) {
+					panic(message)
+				})
+				ensureUp(g, &netlink.Dummy{}, true)
+			}()
+			Expect(r).To(ContainSubstring("link cannot come up: invalid argument"))
+		})
+
 		It("times out", func() {
 			// work around circular import
 			dmy := NewTransient(&netlink.Dummy{}, "tst-")
