@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/onsi/gomega/gleak/goroutine"
-	"github.com/thediveo/notwork/dummy"
 	"github.com/thediveo/notwork/link"
 	"github.com/vishvananda/netlink"
 
@@ -106,34 +105,6 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 		Execute(netnsfd, func() { currentnetnsIno = Ino("/proc/thread-self/ns/net") })
 		Expect(currentnetnsIno).NotTo(BeZero())
 		Expect(currentnetnsIno).To(Equal(netnsIno))
-	})
-
-	It("returns a netlink handle for a network namespace fd reference", func() {
-		netnsfd := NewTransient()
-		var dmy netlink.Link
-		Execute(netnsfd, func() {
-			dmy = dummy.NewTransient()
-		})
-		h := NewNetlinkHandle(netnsfd)
-		defer h.Close()
-		Expect(Successful(h.LinkByName(dmy.Attrs().Name)).Attrs().Name).
-			To(Equal(dmy.Attrs().Name))
-	})
-
-	It("creates a dummy network interface in a different network namespace, obeying LinkAttrs.Namespace", func() {
-		defer EnterTransient()()
-		othernetnsfd := NewTransient()
-		dmytempl := &netlink.Dummy{
-			LinkAttrs: netlink.LinkAttrs{
-				Namespace: netlink.NsFd(othernetnsfd),
-			},
-		}
-		dmy := link.NewTransient(dmytempl, "dmy-")
-		Expect(netlink.LinkByName(dmy.Attrs().Name)).Error().To(HaveOccurred())
-		h := NewNetlinkHandle(othernetnsfd)
-		defer h.Close()
-		Expect(Successful(h.LinkByName(dmy.Attrs().Name)).Attrs().Name).
-			To(Equal(dmy.Attrs().Name))
 	})
 
 	It("cannot create a MACVLAN when the parent/master isn't in the current network namespace", func() {

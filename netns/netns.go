@@ -18,8 +18,6 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/vishvananda/netlink"
-	nlnetns "github.com/vishvananda/netns"
 	"golang.org/x/sys/unix"
 
 	. "github.com/onsi/ginkgo/v2" //lint:ignore ST1001 rule does not apply
@@ -144,15 +142,4 @@ func Ino[R ~int | ~string](netns R) uint64 {
 // for the current thread.
 func CurrentIno() uint64 {
 	return Ino("/proc/thread-self/ns/net")
-}
-
-// NewNetlinkHandle returns a netlink handle connected to the network namespace
-// referenced by the specified fd (file descriptor). For instance, this file
-// descriptor might be one returned by [NewTransient] or [Current].
-func NewNetlinkHandle(netnsfd int) *netlink.Handle {
-	GinkgoHelper()
-
-	nlh, err := netlink.NewHandleAt(nlnetns.NsHandle(netnsfd))
-	Expect(err).NotTo(HaveOccurred(), "cannot create netlink handle for network namespace")
-	return nlh
 }
