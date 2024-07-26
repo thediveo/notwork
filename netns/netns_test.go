@@ -43,8 +43,7 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 		DeferCleanup(func() {
 			Eventually(Goroutines).Within(2 * time.Second).ProbeEvery(250 * time.Millisecond).
 				ShouldNot(HaveLeaked(goodgos))
-			Eventually(Filedescriptors).Within(2 * time.Second).ProbeEvery(250 * time.Millisecond).
-				ShouldNot(HaveLeakedFds(goodfds))
+			Expect(Filedescriptors()).NotTo(HaveLeakedFds(goodfds))
 		})
 	})
 
