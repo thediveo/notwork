@@ -46,6 +46,21 @@ var _ = Describe("netlink network namespace handling", func() {
 
 	Context("vishvananda/netlink", func() {
 
+		It("uses a new (RT)NETLINK socket for each package method call and closes upon returning from the call", func() {
+			netnsfd := netns.NewTransient()
+
+			Expect(len(Successful(netlink.LinkList()))).
+				To(BeNumerically(">", 1), "your 'host' needs more than just 'lo'")
+
+			netns.Execute(netnsfd, func() {
+				Expect(Successful(netlink.LinkList())).
+					To(HaveLen(1), "did reuse a socket when it shoudln't")
+			})
+
+			Expect(len(Successful(netlink.LinkList()))).
+				To(BeNumerically(">", 1), "did reuse a socket when it shouldn't")
+		})
+
 		It("fails to fetch the index of a new link created in a different network namespace", func() {
 			netnsfd := netns.NewTransient()
 
@@ -56,7 +71,7 @@ var _ = Describe("netlink network namespace handling", func() {
 				},
 			}
 			Expect(netlink.LinkAdd(l)).To(Succeed())
-			Expect(l.Attrs().Index).To(BeZero())
+			Expect(l.Attrs().Index).To(BeZero(), "someone finally fixed netlink.LinkAdd!")
 
 			Expect(Successful(
 				netns.NewNetlinkHandle(netnsfd).LinkByName(l.Name))).To(
