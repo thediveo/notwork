@@ -19,6 +19,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/thediveo/notwork/link/namespaced"
 	"github.com/thediveo/notwork/netns"
 	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
@@ -44,8 +45,7 @@ var _ = Describe("creates transient network interfaces", func() {
 		DeferCleanup(func() {
 			Eventually(Goroutines).Within(2 * time.Second).ProbeEvery(100 * time.Millisecond).
 				ShouldNot(HaveLeaked(goodgos))
-			Eventually(Filedescriptors).Within(2 * time.Second).ProbeEvery(100 * time.Millisecond).
-				ShouldNot(HaveLeakedFds(goodfds))
+			Expect(Filedescriptors()).NotTo(HaveLeakedFds(goodfds))
 		})
 	})
 
@@ -60,7 +60,7 @@ var _ = Describe("creates transient network interfaces", func() {
 			Expect(nifname).NotTo(ContainSubstring("\x00"))
 		})
 
-		It("respects length restrictions", func() {
+		It("respects length restrictions, failing for overlong names", func() {
 			oldfail := fail
 			var msg string
 			fail = func(message string, callerSkip ...int) {
@@ -76,26 +76,30 @@ var _ = Describe("creates transient network interfaces", func() {
 
 	})
 
-	Context("creating transient network interfaces and registering them for destruction", Ordered, func() {
+	Context("creating transient network interfaces and registering them for destruction", func() {
 
-		var dl netlink.Link
+		Context("creation with following proper cleanup", Ordered, func() {
 
-		It("creates a transient network interface with a random suffix ", func() {
-			templ := &netlink.Dummy{}
-			dl = NewTransient(templ, dummyPrefix)
-			Expect(dl.Attrs().Name).NotTo(BeEmpty())
-			Expect(dl.Attrs().Name).NotTo(Equal(templ.Name), "missing random suffix")
+			var dl netlink.Link
 
-			// Check that the network interface was in fact created.
-			ql := Successful(netlink.LinkByName(dl.Attrs().Name))
-			Expect(ql.Attrs().Index).To(Equal(dl.Attrs().Index))
-		})
+			It("creates a transient network interface with a random suffix", func() {
+				templ := &netlink.Dummy{}
+				dl = NewTransient(templ, dummyPrefix)
+				Expect(dl.Attrs().Name).NotTo(BeEmpty())
+				Expect(dl.Attrs().Name).NotTo(Equal(templ.Name), "missing random suffix")
 
-		It("has no transient network interface anymore", func() {
-			// The network interfaces created in the above step should have been
-			// deleted by now.
-			Expect(netlink.LinkByName(dl.Attrs().Name)).Error().To(
-				MatchError("Link not found"))
+				// Check that the network interface was in fact created.
+				ql := Successful(netlink.LinkByName(dl.Attrs().Name))
+				Expect(ql.Attrs().Index).To(Equal(dl.Attrs().Index))
+			})
+
+			It("has no transient network interface anymore", func() {
+				// The network interfaces created in the above step should have been
+				// deleted by now.
+				Expect(netlink.LinkByName(dl.Attrs().Name)).Error().To(
+					MatchError("Link not found"))
+			})
+
 		})
 
 		It("properly creates a transient network interface in a different network namespace", func() {
@@ -168,10 +172,6 @@ var _ = Describe("creates transient network interfaces", func() {
 	})
 
 	It("removes a transient network interface in a different network namespace", func() {
-		if os.Geteuid() != 0 {
-			Skip("needs root")
-		}
-
 		By("creating a new network namespace")
 		runtime.LockOSThread()
 		netnsfd := netns.Current()
@@ -187,7 +187,7 @@ var _ = Describe("creates transient network interfaces", func() {
 		_ = NewTransient(&netlink.Dummy{}, dummyPrefix)
 	})
 
-	Context("ensuring that network interfaces are operationally up", func() {
+	When("ensuring that network interfaces are operationally up", func() {
 
 		It("expects the passed link to be non-nil", func() {
 			var r any
@@ -222,8 +222,7 @@ var _ = Describe("creates transient network interfaces", func() {
 			Expect(r).To(ContainSubstring("link cannot come up: invalid argument"))
 		})
 
-		It("times out", func() {
-			// work around circular import
+		It("times out waiting for the interface to become operationally up/unknown", func() {
 			dmy := NewTransient(&netlink.Dummy{}, "tst-")
 
 			var r any
@@ -246,8 +245,7 @@ var _ = Describe("creates transient network interfaces", func() {
 			Expect(r).To(ContainSubstring("Timed out after 2."))
 		})
 
-		It("waits for operationally up", func() {
-			// work around circular import
+		It("waits for operationally up/unknown (not down)", func() {
 			dmy := NewTransient(&netlink.Dummy{}, "tst-")
 			mcvlan := NewTransient(&netlink.Macvlan{
 				LinkAttrs: netlink.LinkAttrs{
@@ -266,6 +264,58 @@ var _ = Describe("creates transient network interfaces", func() {
 			}()
 			Expect(r).To(BeNil())
 
+		})
+
+	})
+
+	When("current, link, and destination network namespaces all differ", func() {
+
+		It("creates correctly in a different destination network namespace", func() {
+			destNetnsfd := netns.NewTransient()
+			dmy := NewTransient(&netlink.Dummy{
+				LinkAttrs: netlink.LinkAttrs{
+					Namespace: netlink.NsFd(destNetnsfd),
+				},
+			}, "tstd-")
+			Expect(dmy.Attrs().Index).NotTo(BeZero())
+
+			Expect(netlink.LinkByName(dmy.Attrs().Name)).Error().To(HaveOccurred())
+			netnsh := netns.NewNetlinkHandle(destNetnsfd)
+			l := Successful(netnsh.LinkByName(dmy.Attrs().Name))
+			Expect(l.Attrs().Index).To(Equal(dmy.Attrs().Index))
+		})
+
+		It("correctly uses link network namespace as reference for parent when creating in another network namespace", func() {
+			// Note that we don't enter network namespaces, but instead tell
+			// NETLINK to create network interfaces "elsewhere"...
+
+			By("creating a dummy network interface in 'link' transient network namespace")
+			linkNetnsfd := netns.NewTransient()
+			dmy := NewTransient(&netlink.Dummy{
+				LinkAttrs: netlink.LinkAttrs{
+					Namespace: netlink.NsFd(linkNetnsfd),
+				},
+			}, "tstd-")
+			Expect(dmy.Attrs().Index).NotTo(BeZero())
+
+			By("creating a MACVLAN network interface in 'destination' network namespace, referencing parent in different 'link' network namespace")
+			destNetnsfd := netns.NewTransient()
+			mcvlan := NewTransient(namespaced.To(&netlink.Macvlan{
+				LinkAttrs: netlink.LinkAttrs{
+					ParentIndex: dmy.Attrs().Index,
+					Namespace:   netlink.NsFd(destNetnsfd),
+				},
+				Mode: netlink.MACVLAN_MODE_BRIDGE,
+			}, linkNetnsfd), "tstm-")
+			Expect(mcvlan.Attrs().Index).NotTo(BeZero())
+
+			netnsh := netns.NewNetlinkHandle(destNetnsfd)
+			l := Successful(netnsh.LinkByName(mcvlan.Attrs().Name))
+			Expect(l.Attrs().Index).To(Equal(mcvlan.Attrs().Index))
+
+			linkNetnsh := netns.NewNetlinkHandle(linkNetnsfd)
+			Expect(linkNetnsh.LinkByName(mcvlan.Attrs().Name)).Error().
+				To(HaveOccurred(), "macvlan appeared in link netns, but should be in target netns")
 		})
 
 	})

@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/copier"
+	"github.com/thediveo/notwork/link/namespaced"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
 	"golang.org/x/sys/unix"
@@ -87,33 +88,61 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 		fail("link.Attrs().Namespace reference must be nil or a netlink.NsFd")
 	}
 
+	// Callers might pass in a wrapped.Link in order to transport network
+	// namespace information, or they might not (especially external API
+	// callers). So unwrap when necessary, keeping the piggy-backed link
+	// namespace reference, if any.
+	link, linkNamespace := namespaced.Unwrap(link)
+	// Create a deep copy of the (unwrapped) link description.
 	newlink := reflect.New(reflect.ValueOf(link).Elem().Type()).Interface().(netlink.Link)
 	Expect(copier.CopyWithOption(newlink, link, copier.Option{DeepCopy: true, IgnoreEmpty: true})).
 		To(Succeed())
 	link = newlink
 
+	// The caller might pass us an additional "link" network namespace, to use
+	// Linux kernel terminology. This "link" network namespace is not to be
+	// confused with netlink.LinkAttrs.Namespace, but instead specifies the
+	// network namespace in which to start creation from in order to correctly
+	// resolve parent/master link ifindex references.
+	var linknetnsh *netlink.Handle // ...only needed temporarily
+	if linkNamespace == nil {
+		linknetnsh = &netlink.Handle{} // ...use the current network namespace
+	} else {
+		linknetnsfd, ok := linkNamespace.(netlink.NsFd)
+		if !ok {
+			fail("wrapped namespace.LinkNamespace must be nil or a netlink.NsFd")
+		}
+		var err error
+		linknetnsh, err = netlink.NewHandleAt(netns.NsHandle(linknetnsfd))
+		Expect(err).NotTo(HaveOccurred(), "cannot create NETLINK handle for link network namespace")
+		defer linknetnsh.Close() // only needed momentarily
+	}
+
 	// We want to keep a netlink handle to the network namespace where the
-	// network interface is to be created in, in order to later remove it in the
-	// deferred cleanup handler. Now, the link information passed in may
-	// reference a network namespace different from the current network
-	// namespace, so we need to take care to get the netlink handle in the
-	// correct network namespace.
+	// network interface is to be created in (or more precise, to end up in), in
+	// order to later remove it in the deferred cleanup handler. Now, the link
+	// information passed in may reference a network namespace different from
+	// the current network namespace, so we need to take care to get the netlink
+	// handle in the correct network namespace.
 	var netnsh *netlink.Handle // ...that should be needed till the end.
 	var err error
 	if link.Attrs().Namespace == nil {
 		// Avoid promoting a potential circular dependency, so we get the
 		// reference to the current network namespace by hand instead of using
-		// the convenience function from the netns package.
+		// the convenience function from the netns package; furthermore,
+		// netns.Current arranges for a DeferCleanup that we don't want to be
+		// done yet.
 		netnsfd, err := unix.Open("/proc/thread-self/ns/net", unix.O_RDONLY, 0)
 		defer unix.Close(netnsfd)
 		Expect(err).NotTo(HaveOccurred(), "cannot determine current network namespace from procfs")
 		netnsh, err = netlink.NewHandleAt(netns.NsHandle(netnsfd))
-		Expect(err).NotTo(HaveOccurred(), "cannot create NETLINK handle")
+		Expect(err).NotTo(HaveOccurred(), "cannot create NETLINK handle for network namespace")
 	} else {
 		// Type assertion is guarded by BeAssignableToTypeOf assertion above.
 		netnsh, err = netlink.NewHandleAt(netns.NsHandle(link.Attrs().Namespace.(netlink.NsFd)))
 		Expect(err).NotTo(HaveOccurred(), "cannot create NETLINK handle")
 	}
+
 	defer func() {
 		// Only close the netlink handle when it wasn't captured for a (Ginkgo)
 		// deferred cleanup and thus hasn't been set to nil.
@@ -133,7 +162,7 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 			veth.PeerName = peername
 		}
 		// Try to create the link and let's see what happens...
-		err := netlink.LinkAdd(link)
+		err := linknetnsh.LinkAdd(link)
 		if err != nil {
 			// did we run just run into an accidentally duplicate random name,
 			// or into a general error instead?
@@ -144,6 +173,13 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 		}
 		// Phew, this worked.
 		By(fmt.Sprintf("creating a transient network interface %q", link.Attrs().Name))
+		// Work around a bug in vishvananda/netlink where the Index attribute
+		// isn't updated correctly or even wrongly when
+		// netlink.LinkAttrs.Namespace has been set.
+		targetLink, err := netnsh.LinkByName(link.Attrs().Name)
+		Expect(err).NotTo(HaveOccurred(), "cannot determine network interface index after creation")
+		Expect(targetLink).NotTo(BeNil(), "cannot determine network interface index after creation")
+		link.Attrs().Index = targetLink.Attrs().Index
 		// Note that in case of VETH pairs we only need to remove one end in
 		// order to also remove the other end automatically. No dangling
 		// virtual wires.
@@ -215,6 +251,7 @@ func ensureUp(g Gomega, link netlink.Link, skipup bool, within ...time.Duration)
 // interface names. The random string part consists of only digits as well as
 // lowercase and uppercase ASCII letters.
 func RandomNifname(prefix string) string {
+	GinkgoHelper()
 	return base62Nifname(prefix)
 }
 
