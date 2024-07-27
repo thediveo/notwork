@@ -76,6 +76,7 @@ func NewTransient() int {
 // Execute a function fn in the network namespace referenced by the open file
 // descriptor netnsfd.
 func Execute(netnsfd int, fn func()) {
+	GinkgoHelper()
 	execute(Default, netnsfd, fn)
 }
 
@@ -104,6 +105,7 @@ func execute(g Gomega, netnsfd int, fn func()) {
 // descriptor to be closed to avoid leaking it.
 func Current() int {
 	GinkgoHelper()
+
 	netnsfd := current()
 	DeferCleanup(func() {
 		_ = unix.Close(netnsfd)
@@ -141,5 +143,7 @@ func Ino[R ~int | ~string](netns R) uint64 {
 // CurrentIno returns the identification/inode number of the network namespace
 // for the current thread.
 func CurrentIno() uint64 {
+	GinkgoHelper()
+
 	return Ino("/proc/thread-self/ns/net")
 }

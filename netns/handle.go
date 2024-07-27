@@ -43,6 +43,7 @@ import (
 // automatically schedules for the netlink.Handle to be closed when the calling
 // test node terminates (for whichever reason).
 func NewNetlinkHandle(netnsfd int) *netlink.Handle {
+	GinkgoHelper()
 	return newNetlinkHandle(Default, netnsfd)
 }
 
