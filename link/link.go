@@ -103,10 +103,8 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 	// confused with netlink.LinkAttrs.Namespace, but instead specifies the
 	// network namespace in which to start creation from in order to correctly
 	// resolve parent/master link ifindex references.
-	var linknetnsh *netlink.Handle // ...only needed temporarily
-	if linkNamespace == nil {
-		linknetnsh = &netlink.Handle{} // ...use the current network namespace
-	} else {
+	var linknetnsh *netlink.Handle // ...only needed inside NewTransient
+	if linkNamespace != nil {
 		linknetnsfd, ok := linkNamespace.(netlink.NsFd)
 		if !ok {
 			fail("wrapped namespace.LinkNamespace must be nil or a netlink.NsFd")
@@ -161,7 +159,12 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 			veth.PeerName = peername
 		}
 		// Try to create the link and let's see what happens...
-		err := linknetnsh.LinkAdd(link)
+		var err error
+		if linknetnsh != nil {
+			err = linknetnsh.LinkAdd(link)
+		} else {
+			err = netlink.LinkAdd(link)
+		}
 		if err != nil {
 			// did we run just run into an accidentally duplicate random name,
 			// or into a general error instead?
