@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package namespaced
+package link
 
 import "github.com/vishvananda/netlink"
 
@@ -32,9 +32,9 @@ type Link struct {
 
 var _ (netlink.Link) = (*Link)(nil)
 
-// To returns a wrapped netlink.Link namespaced to the network namespace
+// Wrap returns a wrapped netlink.Link namespaced to the network namespace
 // referenced by the passed netnsfd.
-func To(link netlink.Link, netnsfd int) netlink.Link {
+func Wrap(link netlink.Link, netnsfd int) netlink.Link {
 	return &Link{
 		Link:          link,
 		LinkNamespace: netlink.NsFd(netnsfd),

@@ -6,7 +6,7 @@
 [![goroutines](https://img.shields.io/badge/go%20routines-not%20leaking-success)](https://pkg.go.dev/github.com/onsi/gomega/gleak)
 [![file descriptors](https://img.shields.io/badge/file%20descriptors-not%20leaking-success)](https://pkg.go.dev/github.com/thediveo/fdooze)
 [![Go Report Card](https://goreportcard.com/badge/github.com/thediveo/whalewatcher)](https://goreportcard.com/report/github.com/thediveo/notwork)
-![Coverage](https://img.shields.io/badge/Coverage-84.3%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-85.4%25-brightgreen)
 
 A tiny package to help with creating transient Linux virtual network elements
 for testing purposes. It leverages both the

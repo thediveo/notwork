@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/jinzhu/copier"
-	"github.com/thediveo/notwork/link/namespaced"
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netns"
 	"golang.org/x/sys/unix"
@@ -92,7 +91,7 @@ func NewTransient(link netlink.Link, prefix string) netlink.Link {
 	// namespace information, or they might not (especially external API
 	// callers). So unwrap when necessary, keeping the piggy-backed link
 	// namespace reference, if any.
-	link, linkNamespace := namespaced.Unwrap(link)
+	link, linkNamespace := Unwrap(link)
 	// Create a deep copy of the (unwrapped) link description.
 	newlink := reflect.New(reflect.ValueOf(link).Elem().Type()).Interface().(netlink.Link)
 	Expect(copier.CopyWithOption(newlink, link, copier.Option{DeepCopy: true, IgnoreEmpty: true})).

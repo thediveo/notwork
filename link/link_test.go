@@ -19,7 +19,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/thediveo/notwork/link/namespaced"
 	"github.com/thediveo/notwork/netns"
 	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
@@ -300,7 +299,7 @@ var _ = Describe("creates transient network interfaces", func() {
 
 			By("creating a MACVLAN network interface in 'destination' network namespace, referencing parent in different 'link' network namespace")
 			destNetnsfd := netns.NewTransient()
-			mcvlan := NewTransient(namespaced.To(&netlink.Macvlan{
+			mcvlan := NewTransient(Wrap(&netlink.Macvlan{
 				LinkAttrs: netlink.LinkAttrs{
 					ParentIndex: dmy.Attrs().Index,
 					Namespace:   netlink.NsFd(destNetnsfd),

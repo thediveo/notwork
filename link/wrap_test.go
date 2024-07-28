@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package namespaced
+package link
 
 import (
 	"github.com/vishvananda/netlink"
@@ -21,7 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("namespaced links", func() {
+var _ = Describe("wrapped links", func() {
 
 	It("handles nil", func() {
 		lnk, netns := Unwrap(nil)
@@ -37,7 +37,7 @@ var _ = Describe("namespaced links", func() {
 
 	It("unwraps a namespaced netlink.Link", func() {
 		expectedFd := 42
-		lnk, netns := Unwrap(To(
+		lnk, netns := Unwrap(Wrap(
 			&netlink.Dummy{},
 			expectedFd))
 		Expect(lnk).To(BeAssignableToTypeOf(&netlink.Dummy{}))
