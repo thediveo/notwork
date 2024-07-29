@@ -40,7 +40,7 @@ var _ = Describe("provides transient MACVLAN network interfaces", Ordered, func(
 		DeferCleanup(func() {
 			Eventually(Goroutines).Within(2 * time.Second).ProbeEvery(250 * time.Millisecond).
 				ShouldNot(HaveLeaked(goodgos))
-			Expect(Filedescriptors()).ShouldNot(HaveLeakedFds(goodfds))
+			Expect(Filedescriptors()).NotTo(HaveLeakedFds(goodfds))
 		})
 	})
 

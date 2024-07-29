@@ -16,8 +16,8 @@ package veth
 
 import (
 	"github.com/thediveo/notwork/link"
-	"github.com/thediveo/notwork/netns"
 	"github.com/vishvananda/netlink"
+	vishnetns "github.com/vishvananda/netns"
 
 	. "github.com/onsi/ginkgo/v2"   //lint:ignore ST1001 rule does not apply
 	. "github.com/onsi/gomega"      //lint:ignore ST1001 rule does not apply
@@ -29,7 +29,7 @@ const VethPrefix = "veth-"
 
 // Opt is a configuration option when creating a new pair of VETH network
 // interfaces.
-type Opt func(*netlink.Veth) error
+type Opt func(*link.Link) error
 
 // NewTransient creates and returns a new (and transient) VETH pair of network
 // interfaces. The one VETH end is created in the current network namespace,
@@ -39,41 +39,26 @@ type Opt func(*netlink.Veth) error
 // See also: https://en.wikipedia.org/wiki/Thomson_and_Thompson
 func NewTransient(opts ...Opt) (dupond netlink.Link, dupont netlink.Link) {
 	GinkgoHelper()
-	veth := &netlink.Veth{
-		LinkAttrs: netlink.LinkAttrs{},
+	veth := &link.Link{
+		Link: &netlink.Veth{
+			LinkAttrs: netlink.LinkAttrs{},
+		},
 	}
 	for _, opt := range opts {
 		Expect(opt(veth)).To(Succeed())
 	}
 	dupond = link.NewTransient(veth, VethPrefix)
-	if veth.PeerNamespace != nil {
-		netnsfd, _ := veth.PeerNamespace.(netlink.NsFd)
-		netns.Execute(int(netnsfd), func() {
-			dupont = Successful(netlink.LinkByName(dupond.(*netlink.Veth).PeerName))
-		})
+	// Now things get tricky as want to return proper link information about the
+	// peer; unfortunately, RTNETLINK again acts odd: with the destination
+	// network namespace set, if the peer network namespace is unset then the
+	// peer will end up in the current(!) network namespace, not in the
+	// destination network namespace. Yuck.
+	if peerNamespace := veth.Link.(*netlink.Veth).PeerNamespace; peerNamespace != nil {
+		nlh := Successful(netlink.NewHandleAt(vishnetns.NsHandle(int(peerNamespace.(netlink.NsFd)))))
+		defer nlh.Close()
+		dupont = Successful(nlh.LinkByName(dupond.(*netlink.Veth).PeerName))
 		return
 	}
 	dupont = Successful(netlink.LinkByName(dupond.(*netlink.Veth).PeerName))
 	return
-}
-
-// InNamespace configures the “first” VETH network interface to be created in
-// the network namespace referenced by fdref, instead of creating it in the
-// current network namespace. The “second” VETH network interface will be
-// created in the current network namespace, use [WithPeerNamespace] to create
-// this end in a different network namespace.
-func InNamespace(fdref int) Opt {
-	return func(l *netlink.Veth) error {
-		l.Namespace = netlink.NsFd(fdref)
-		return nil
-	}
-}
-
-// WithPeerNamespace configures the VETH peer end to be created inside the
-// network namespace referenced by fd.
-func WithPeerNamespace(fd int) Opt {
-	return func(v *netlink.Veth) error {
-		v.PeerNamespace = netlink.NsFd(fd)
-		return nil
-	}
 }

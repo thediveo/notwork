@@ -49,8 +49,7 @@ var _ = Describe("creating transient dummy network interfaces", func() {
 		DeferCleanup(func() {
 			Eventually(Goroutines).Within(2 * time.Second).ProbeEvery(100 * time.Millisecond).
 				ShouldNot(HaveLeaked(goodgos))
-			Eventually(Filedescriptors).Within(2 * time.Second).ProbeEvery(100 * time.Millisecond).
-				ShouldNot(HaveLeakedFds(goodfds))
+			Expect(Filedescriptors()).NotTo(HaveLeakedFds(goodfds))
 		})
 	})
 

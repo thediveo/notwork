@@ -39,34 +39,73 @@ var _ = Describe("provides transient VETH network interface pairs", Ordered, fun
 		DeferCleanup(func() {
 			Eventually(Goroutines).Within(2 * time.Second).ProbeEvery(250 * time.Millisecond).
 				ShouldNot(HaveLeaked(goodgos))
-			Eventually(Filedescriptors).Within(2 * time.Second).ProbeEvery(250 * time.Millisecond).
-				ShouldNot(HaveLeakedFds(goodfds))
+			Expect(Filedescriptors()).NotTo(HaveLeakedFds(goodfds))
 		})
 	})
 
-	It("creates a VETH pair in the same network namespace", func() {
+	It("creates a VETH pair in the same current transient network namespace", func() {
+		defer netns.EnterTransient()()
+
 		dupond, dupont := NewTransient()
 		Expect(dupond).NotTo(BeNil())
 		Expect(dupont).NotTo(BeNil())
 		Expect(dupond.Attrs().Name).To(HavePrefix(VethPrefix))
 		Expect(dupont.Attrs().Name).To(HavePrefix(VethPrefix))
 		Expect(dupond.Attrs().Name).NotTo(Equal(dupont.Attrs().Name))
+		Expect(dupond.Attrs().Index).NotTo(BeZero())
+		Expect(dupont.Attrs().Index).NotTo(BeZero())
 		// Check that the network interface pair was in fact created.
-		ql := Successful(netlink.LinkByIndex(dupond.Attrs().Index))
+		ql := Successful(netlink.LinkByName(dupond.Attrs().Name))
 		Expect(ql.Attrs().OperState).NotTo(Equal(netlink.OperDown))
-		ql = Successful(netlink.LinkByIndex(dupont.Attrs().Index))
+		ql = Successful(netlink.LinkByName(dupont.Attrs().Name))
 		Expect(ql.Attrs().OperState).NotTo(Equal(netlink.OperDown))
 	})
 
-	It("creates a VETH pair in the different network namespaces", func() {
-		dupondNetns := netns.NewTransient()
-		dupontNetns := netns.NewTransient()
-		dupond, dupont := NewTransient(InNamespace(dupondNetns), WithPeerNamespace(dupontNetns))
+	It("creates a VETH pair with the first end in a different network namespace, but with the peer in the current(!) network namespace", func() {
+		netnsfd := netns.NewTransient()
+
+		dupond, dupont := NewTransient(InNamespace(netnsfd))
 		Expect(dupond).NotTo(BeNil())
 		Expect(dupont).NotTo(BeNil())
 		Expect(dupond.Attrs().Name).To(HavePrefix(VethPrefix))
 		Expect(dupont.Attrs().Name).To(HavePrefix(VethPrefix))
 		Expect(dupond.Attrs().Name).NotTo(Equal(dupont.Attrs().Name))
+		Expect(dupond.Attrs().Index).NotTo(BeZero())
+		Expect(dupont.Attrs().Index).NotTo(BeZero())
+		Expect(netlink.LinkByName(dupond.Attrs().Name)).Error().To(HaveOccurred())
+		Expect(netlink.LinkByName(dupont.Attrs().Name)).Error().NotTo(HaveOccurred())
+	})
+
+	It("creates a VETH pair in the same other network namespace", func() {
+		netnsfd := netns.NewTransient()
+
+		dupond, dupont := NewTransient(
+			InNamespace(netnsfd), WithPeerNamespace(netnsfd))
+		Expect(dupond).NotTo(BeNil())
+		Expect(dupont).NotTo(BeNil())
+		Expect(dupond.Attrs().Name).To(HavePrefix(VethPrefix))
+		Expect(dupont.Attrs().Name).To(HavePrefix(VethPrefix))
+		Expect(dupond.Attrs().Name).NotTo(Equal(dupont.Attrs().Name))
+		Expect(dupond.Attrs().Index).NotTo(BeZero())
+		Expect(dupont.Attrs().Index).NotTo(BeZero())
+		Expect(netlink.LinkByName(dupond.Attrs().Name)).Error().To(HaveOccurred())
+		Expect(netlink.LinkByName(dupont.Attrs().Name)).Error().To(HaveOccurred())
+	})
+
+	It("creates a VETH pair in the two different network namespace", func() {
+		dupondNetnsfd := netns.NewTransient()
+		dupontNetnsfd := netns.NewTransient()
+
+		dupond, dupont := NewTransient(
+			InNamespace(dupondNetnsfd),
+			WithPeerNamespace(dupontNetnsfd))
+		Expect(dupond).NotTo(BeNil())
+		Expect(dupont).NotTo(BeNil())
+		Expect(dupond.Attrs().Name).To(HavePrefix(VethPrefix))
+		Expect(dupont.Attrs().Name).To(HavePrefix(VethPrefix))
+		Expect(dupond.Attrs().Name).NotTo(Equal(dupont.Attrs().Name))
+		Expect(dupond.Attrs().Index).NotTo(BeZero())
+		Expect(dupont.Attrs().Index).NotTo(BeZero())
 		Expect(netlink.LinkByName(dupond.Attrs().Name)).Error().To(HaveOccurred())
 		Expect(netlink.LinkByName(dupont.Attrs().Name)).Error().To(HaveOccurred())
 	})
