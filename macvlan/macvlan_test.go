@@ -19,12 +19,14 @@ import (
 	"time"
 
 	"github.com/thediveo/notwork/dummy"
+	"github.com/thediveo/notwork/netns"
 	"github.com/vishvananda/netlink"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gleak"
 	. "github.com/thediveo/fdooze"
+	. "github.com/thediveo/success"
 )
 
 var _ = Describe("provides transient MACVLAN network interfaces", Ordered, func() {
@@ -38,16 +40,17 @@ var _ = Describe("provides transient MACVLAN network interfaces", Ordered, func(
 		DeferCleanup(func() {
 			Eventually(Goroutines).Within(2 * time.Second).ProbeEvery(250 * time.Millisecond).
 				ShouldNot(HaveLeaked(goodgos))
-			Eventually(Filedescriptors).Within(2 * time.Second).ProbeEvery(250 * time.Millisecond).
-				ShouldNot(HaveLeakedFds(goodfds))
+			Expect(Filedescriptors()).ShouldNot(HaveLeakedFds(goodfds))
 		})
 	})
 
 	It("creates a MACVLAN with a dummy parent using legacy API", func() {
+		defer netns.EnterTransient()()
 		_ = CreateTransient(dummy.NewTransientUp())
 	})
 
 	It("creates a MACVLAN with a dummy parent and a configuration option", func() {
+		defer netns.EnterTransient()()
 		_ = NewTransient(dummy.NewTransientUp(), WithMode(netlink.MACVLAN_MODE_BRIDGE))
 	})
 
@@ -56,20 +59,19 @@ var _ = Describe("provides transient MACVLAN network interfaces", Ordered, func(
 		Expect(parent).NotTo(BeNil())
 	})
 
-	When("using options", func() {
+	It("creates a MACVLAN with its parent in a different network namespace", func() {
+		dmyNetnsfd := netns.NewTransient()
+		dmy := dummy.NewTransient(dummy.InNamespace(dmyNetnsfd))
 
-		It("configures a different netns", func() {
-			l := &netlink.Macvlan{}
-			Expect(InNamespace(-42)(l)).To(Succeed())
-			Expect(l.Namespace).To(Equal(netlink.NsFd(-42)))
-		})
+		destNetnsfd := netns.NewTransient()
+		mcvlan := NewTransient(dmy,
+			InNamespace(destNetnsfd),
+			WithLinkNamespace(dmyNetnsfd))
+		Expect(mcvlan.Attrs().Index).NotTo(BeZero())
 
-		It("configures the mode", func() {
-			l := &netlink.Macvlan{}
-			Expect(WithMode(netlink.MACVLAN_MODE_VEPA)(l)).To(Succeed())
-			Expect(l.Mode).To(Equal(netlink.MACVLAN_MODE_VEPA))
-		})
-
+		destnlh := netns.NewNetlinkHandle(destNetnsfd)
+		Expect(Successful(destnlh.LinkByName(mcvlan.Attrs().Name))).To(
+			HaveField("Attrs().Index", mcvlan.Attrs().Index))
 	})
 
 })
