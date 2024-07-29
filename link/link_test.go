@@ -299,7 +299,7 @@ var _ = Describe("creates transient network interfaces", func() {
 
 			By("creating a MACVLAN network interface in 'destination' network namespace, referencing parent in different 'link' network namespace")
 			destNetnsfd := netns.NewTransient()
-			mcvlan := NewTransient(Wrap(&netlink.Macvlan{
+			mcvlan := NewTransient(WrapWithLinkNamespace(&netlink.Macvlan{
 				LinkAttrs: netlink.LinkAttrs{
 					ParentIndex: dmy.Attrs().Index,
 					Namespace:   netlink.NsFd(destNetnsfd),

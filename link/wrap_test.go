@@ -37,11 +37,18 @@ var _ = Describe("wrapped links", func() {
 
 	It("unwraps a namespaced netlink.Link", func() {
 		expectedFd := 42
-		lnk, netns := Unwrap(Wrap(
+		lnk, netns := Unwrap(WrapWithLinkNamespace(
 			&netlink.Dummy{},
 			expectedFd))
 		Expect(lnk).To(BeAssignableToTypeOf(&netlink.Dummy{}))
 		Expect(netns).To(Equal(netlink.NsFd(expectedFd)))
+	})
+
+	It("wraps if unwrapped", func() {
+		w := EnsureWrap(&netlink.GenericLink{})
+		Expect(w.(*Link)).NotTo(BeNil())
+		var gen *netlink.GenericLink
+		Expect(EnsureWrap(w).(*Link).Link).To(BeAssignableToTypeOf(gen))
 	})
 
 })

@@ -51,7 +51,7 @@ namespace applies.
 
 # WithLinkNamespace
 
-Wrapping a [netlink.Link] using [Wrap] associates that link information with yet
+Wrapping a [netlink.Link] using [WrapWithLinkNamespace] associates that link information with yet
 another network namespace, the so-called “link” network namespace in Linux
 kernel parlance. While this is an ambigious choice of word, we keep with it (see
 [rtnl_newlink_create]) to hopefully not cause even more confusing by inventing

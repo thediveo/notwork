@@ -32,13 +32,22 @@ type Link struct {
 
 var _ (netlink.Link) = (*Link)(nil)
 
-// Wrap returns a wrapped netlink.Link namespaced to the network namespace
-// referenced by the passed netnsfd.
-func Wrap(link netlink.Link, netnsfd int) netlink.Link {
+// WrapWithLinkNamespace returns a wrapped netlink.Link namespaced to the
+// network namespace referenced by the passed netnsfd.
+func WrapWithLinkNamespace(link netlink.Link, netnsfd int) netlink.Link {
 	return &Link{
 		Link:          link,
 		LinkNamespace: netlink.NsFd(netnsfd),
 	}
+}
+
+// EnsureWrap always returns a wrapper Link, wrapping the passed link where
+// necessary.
+func EnsureWrap(link netlink.Link) netlink.Link {
+	if _, ok := link.(*Link); ok {
+		return link
+	}
+	return &Link{Link: link}
 }
 
 // Unwrap takes a potentally wrapped netlink.Link, unwraps the original

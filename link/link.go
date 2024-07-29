@@ -96,14 +96,10 @@ func NewTransient(link netlink.Link, prefix string, opts ...Opt) netlink.Link {
 		fail("link.Attrs().Namespace reference must be nil or a netlink.NsFd")
 	}
 
-	// If not wrapped already, wrap the passed-in link in preparation of
-	// processing any options.
-	if _, ok := link.(*Link); !ok {
-		link = &Link{Link: link}
-	}
-	l := link.(*Link)
+	// Process configuration options, if any...
+	link = EnsureWrap(link)
 	for _, opt := range opts {
-		Expect(opt(l)).To(Succeed())
+		Expect(opt(link.(*Link))).To(Succeed())
 	}
 
 	// Callers might pass in a wrapped.Link in order to transport network
