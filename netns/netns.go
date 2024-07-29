@@ -16,14 +16,14 @@ package netns
 
 import (
 	"fmt"
+	"math/rand"
 	"runtime"
 
-	"github.com/vishvananda/netlink"
-	nlnetns "github.com/vishvananda/netns"
 	"golang.org/x/sys/unix"
 
 	. "github.com/onsi/ginkgo/v2" //lint:ignore ST1001 rule does not apply
 	. "github.com/onsi/gomega"    //lint:ignore ST1001 rule does not apply
+	"github.com/vishvananda/netlink"
 )
 
 // EnterTransient creates and enters a new (and isolated) network namespace,
@@ -78,6 +78,7 @@ func NewTransient() int {
 // Execute a function fn in the network namespace referenced by the open file
 // descriptor netnsfd.
 func Execute(netnsfd int, fn func()) {
+	GinkgoHelper()
 	execute(Default, netnsfd, fn)
 }
 
@@ -106,6 +107,7 @@ func execute(g Gomega, netnsfd int, fn func()) {
 // descriptor to be closed to avoid leaking it.
 func Current() int {
 	GinkgoHelper()
+
 	netnsfd := current()
 	DeferCleanup(func() {
 		_ = unix.Close(netnsfd)
@@ -143,16 +145,49 @@ func Ino[R ~int | ~string](netns R) uint64 {
 // CurrentIno returns the identification/inode number of the network namespace
 // for the current thread.
 func CurrentIno() uint64 {
+	GinkgoHelper()
+
 	return Ino("/proc/thread-self/ns/net")
 }
 
-// NewNetlinkHandle returns a netlink handle connected to the network namespace
-// referenced by the specified fd (file descriptor). For instance, this file
-// descriptor might be one returned by [NewTransient] or [Current].
-func NewNetlinkHandle(netnsfd int) *netlink.Handle {
+// NsID returns the so-called network namespace ID for the passed network
+// namespace, either referenced by a file descriptor or a VFS path name. The
+// nsid identifies the passed network namespace from the perspective of the
+// current network namespace.
+//
+// If no nsid has been assigned yet to the passed network namespace from the
+// perspective of the current network namespace, NsID will assign a random nsid
+// and return it.
+func NsID[R ~int | ~string](netns R) int {
 	GinkgoHelper()
 
-	nlh, err := netlink.NewHandleAt(nlnetns.NsHandle(netnsfd))
-	Expect(err).NotTo(HaveOccurred(), "cannot create netlink handle for network namespace")
-	return nlh
+	var netnsfd int
+	switch ref := any(netns).(type) {
+	case int:
+		netnsfd = ref
+	case string:
+		var err error
+		netnsfd, err = unix.Open(ref, unix.O_RDONLY, 0)
+		Expect(err).NotTo(HaveOccurred(), "cannot open network namespace reference %v", ref)
+		defer unix.Close(netnsfd)
+	}
+	netnsid, err := netlink.GetNetNsIdByFd(netnsfd)
+	Expect(err).NotTo(HaveOccurred(), "cannot retrieve netnsid")
+	// netnsid might be -1, signalling that no netnsid has been assigned yet ...
+	// which begs the question why RTM_GETNSID simply isn't allocating a free
+	// one...?!
+	if netnsid != -1 {
+		return netnsid
+	}
+	for attempt := 1; attempt <= 10; attempt++ {
+		// as per https://elixir.bootlin.com/linux/v6.9.4/source/lib/idr.c#L87,
+		// netnsid's are uint32 (to use Go's data type terminology).
+		netnsid := int(rand.Int31())
+		if err := netlink.SetNetNsIdByFd(netnsfd, netnsid); err != nil {
+			continue
+		}
+		return netnsid
+	}
+	Fail("too many failed attempts to assign a new netnsid first")
+	return -1 // unreachable
 }

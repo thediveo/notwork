@@ -19,6 +19,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/thediveo/notwork/link"
 	"github.com/vishvananda/netlink"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -31,7 +32,7 @@ import (
 var canaryErr = errors.New("cheep cheep")
 
 func withFailingOpt() Opt {
-	return func(l netlink.Link) error {
+	return func(l *link.Link) error {
 		return canaryErr
 	}
 }
@@ -48,8 +49,7 @@ var _ = Describe("creating transient dummy network interfaces", func() {
 		DeferCleanup(func() {
 			Eventually(Goroutines).Within(2 * time.Second).ProbeEvery(100 * time.Millisecond).
 				ShouldNot(HaveLeaked(goodgos))
-			Eventually(Filedescriptors).Within(2 * time.Second).ProbeEvery(100 * time.Millisecond).
-				ShouldNot(HaveLeakedFds(goodfds))
+			Expect(Filedescriptors()).NotTo(HaveLeakedFds(goodfds))
 		})
 	})
 
@@ -71,10 +71,12 @@ var _ = Describe("creating transient dummy network interfaces", func() {
 
 	When("using options", func() {
 
-		It("configures a different netns", func() {
-			l := &netlink.Dummy{}
-			Expect(InNamespace(-42)(l)).To(Succeed())
-			Expect(l.Namespace).To(Equal(netlink.NsFd(-42)))
+		It("configures a different destination network namespace", func() {
+			lnk := &link.Link{
+				Link: &netlink.Macvlan{},
+			}
+			Expect(InNamespace(-42)(lnk)).To(Succeed())
+			Expect(lnk).To(HaveField("Attrs().Namespace", netlink.NsFd(-42)))
 		})
 
 	})
