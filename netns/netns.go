@@ -19,11 +19,11 @@ import (
 	"math/rand"
 	"runtime"
 
+	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
 
 	. "github.com/onsi/ginkgo/v2" //lint:ignore ST1001 rule does not apply
 	. "github.com/onsi/gomega"    //lint:ignore ST1001 rule does not apply
-	"github.com/vishvananda/netlink"
 )
 
 // EnterTransient creates and enters a new (and isolated) network namespace,
