@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/onsi/gomega/gleak/goroutine"
-	"github.com/thediveo/notwork/dummy"
 	"github.com/thediveo/notwork/link"
 	"github.com/vishvananda/netlink"
 
@@ -43,8 +42,7 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 		DeferCleanup(func() {
 			Eventually(Goroutines).Within(2 * time.Second).ProbeEvery(250 * time.Millisecond).
 				ShouldNot(HaveLeaked(goodgos))
-			Eventually(Filedescriptors).Within(2 * time.Second).ProbeEvery(250 * time.Millisecond).
-				ShouldNot(HaveLeakedFds(goodfds))
+			Expect(Filedescriptors()).NotTo(HaveLeakedFds(goodfds))
 		})
 	})
 
@@ -109,34 +107,6 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 		Expect(currentnetnsIno).To(Equal(netnsIno))
 	})
 
-	It("returns a netlink handle for a network namespace fd reference", func() {
-		netnsfd := NewTransient()
-		var dmy netlink.Link
-		Execute(netnsfd, func() {
-			dmy = dummy.NewTransient()
-		})
-		h := NewNetlinkHandle(netnsfd)
-		defer h.Close()
-		Expect(Successful(h.LinkByName(dmy.Attrs().Name)).Attrs().Name).
-			To(Equal(dmy.Attrs().Name))
-	})
-
-	It("creates a dummy network interface in a different network namespace, obeying LinkAttrs.Namespace", func() {
-		defer EnterTransient()()
-		othernetnsfd := NewTransient()
-		dmytempl := &netlink.Dummy{
-			LinkAttrs: netlink.LinkAttrs{
-				Namespace: netlink.NsFd(othernetnsfd),
-			},
-		}
-		dmy := link.NewTransient(dmytempl, "dmy-")
-		Expect(netlink.LinkByName(dmy.Attrs().Name)).Error().To(HaveOccurred())
-		h := NewNetlinkHandle(othernetnsfd)
-		defer h.Close()
-		Expect(Successful(h.LinkByName(dmy.Attrs().Name)).Attrs().Name).
-			To(Equal(dmy.Attrs().Name))
-	})
-
 	It("cannot create a MACVLAN when the parent/master isn't in the current network namespace", func() {
 		// We need to create three separate new network namespaces in order to
 		// exactly know their configuration: only a lo(nely) lo at the
@@ -199,6 +169,31 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
+	When("getting netnsids", func() {
+
+		It("sets it first, when necessary", func() {
+			netnsfd := NewTransient()
+
+			// There should not be any nsid for the transient network namespace yet,
+			// when seen from our current network namespace.
+			Expect(Successful(netlink.GetNetNsIdByFd(netnsfd))).To(Equal(-1))
+
+			nsid := NsID(netnsfd)
+			Expect(nsid).NotTo(Equal(-1))
+			Expect(NsID(netnsfd)).To(Equal(nsid))
+		})
+
+		It("gets a netnsid by path", func() {
+			orignetnsfd := Current()
+			defer EnterTransient()()
+
+			nsid := NsID(orignetnsfd)
+			Expect(nsid).NotTo(Equal(-1))
+			Expect(NsID("/proc/1/ns/net")).To(Equal(nsid))
+		})
+
+	})
+
 	When("running Ginkgo test leaf nodes", Ordered, func() {
 
 		var gid uint64
@@ -208,7 +203,7 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 			Expect(gid).NotTo(BeZero())
 		})
 
-		It("runs this unit test on a different go routine", func() {
+		It("runs this unit test leaf node on a different go routine than the first", func() {
 			gid2 := goroutine.Current().ID
 			Expect(gid2).NotTo(BeZero())
 			Expect(gid2).NotTo(Equal(gid))
