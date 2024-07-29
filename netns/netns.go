@@ -16,12 +16,14 @@ package netns
 
 import (
 	"fmt"
+	"math/rand"
 	"runtime"
 
 	"golang.org/x/sys/unix"
 
 	. "github.com/onsi/ginkgo/v2" //lint:ignore ST1001 rule does not apply
 	. "github.com/onsi/gomega"    //lint:ignore ST1001 rule does not apply
+	"github.com/vishvananda/netlink"
 )
 
 // EnterTransient creates and enters a new (and isolated) network namespace,
@@ -146,4 +148,46 @@ func CurrentIno() uint64 {
 	GinkgoHelper()
 
 	return Ino("/proc/thread-self/ns/net")
+}
+
+// NsID returns the so-called network namespace ID for the passed network
+// namespace, either referenced by a file descriptor or a VFS path name. The
+// nsid identifies the passed network namespace from the perspective of the
+// current network namespace.
+//
+// If no nsid has been assigned yet to the passed network namespace from the
+// perspective of the current network namespace, NsID will assign a random nsid
+// and return it.
+func NsID[R ~int | ~string](netns R) int {
+	GinkgoHelper()
+
+	var netnsfd int
+	switch ref := any(netns).(type) {
+	case int:
+		netnsfd = ref
+	case string:
+		var err error
+		netnsfd, err = unix.Open(ref, unix.O_RDONLY, 0)
+		Expect(err).NotTo(HaveOccurred(), "cannot open network namespace reference %v", ref)
+		defer unix.Close(netnsfd)
+	}
+	netnsid, err := netlink.GetNetNsIdByFd(netnsfd)
+	Expect(err).NotTo(HaveOccurred(), "cannot retrieve netnsid")
+	// netnsid might be -1, signalling that no netnsid has been assigned yet ...
+	// which begs the question why RTM_GETNSID simply isn't allocating a free
+	// one...?!
+	if netnsid != -1 {
+		return netnsid
+	}
+	for attempt := 1; attempt <= 10; attempt++ {
+		// as per https://elixir.bootlin.com/linux/v6.9.4/source/lib/idr.c#L87,
+		// netnsid's are uint32 (to use Go's data type terminology).
+		netnsid := int(rand.Int31())
+		if err := netlink.SetNetNsIdByFd(netnsfd, netnsid); err != nil {
+			continue
+		}
+		return netnsid
+	}
+	Fail("too many failed attempts to assign a new netnsid first")
+	return -1 // unreachable
 }

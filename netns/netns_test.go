@@ -169,6 +169,31 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
+	When("getting netnsids", func() {
+
+		It("sets it first, when necessary", func() {
+			netnsfd := NewTransient()
+
+			// There should not be any nsid for the transient network namespace yet,
+			// when seen from our current network namespace.
+			Expect(Successful(netlink.GetNetNsIdByFd(netnsfd))).To(Equal(-1))
+
+			nsid := NsID(netnsfd)
+			Expect(nsid).NotTo(Equal(-1))
+			Expect(NsID(netnsfd)).To(Equal(nsid))
+		})
+
+		It("gets a netnsid by path", func() {
+			orignetnsfd := Current()
+			defer EnterTransient()()
+
+			nsid := NsID(orignetnsfd)
+			Expect(nsid).NotTo(Equal(-1))
+			Expect(NsID("/proc/1/ns/net")).To(Equal(nsid))
+		})
+
+	})
+
 	When("running Ginkgo test leaf nodes", Ordered, func() {
 
 		var gid uint64
@@ -178,7 +203,7 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 			Expect(gid).NotTo(BeZero())
 		})
 
-		It("runs this unit test on a different go routine", func() {
+		It("runs this unit test leaf node on a different go routine than the first", func() {
 			gid2 := goroutine.Current().ID
 			Expect(gid2).NotTo(BeZero())
 			Expect(gid2).NotTo(Equal(gid))
