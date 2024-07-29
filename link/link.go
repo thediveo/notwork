@@ -33,6 +33,9 @@ import (
 
 var fail = Fail // allow testing Fails without terminally failing the current test.
 
+// Opt is a configuration option when creating a new network interface.
+type Opt func(*Link) error
+
 // NewTransient creates a transient network interface of the specified type (via
 // the type of the link value passed in) and with a name that begins with the
 // given prefix and a random string of digits and uppercase and lowercase ASCII
@@ -69,22 +72,38 @@ var fail = Fail // allow testing Fails without terminally failing the current te
 // situation where the passed in link details reference a network namespace (in
 // form of an open fd) different from the current network namespace.
 //
-// By setting the passed-in [netlink.Attrs.Namespace] and/or
+// By setting the passed-in [netlink.LinkAttrs.Namespace] and/or
 // [netlink.Veth.PeerNamespace] it is possible to create the new virtual network
-// in a different network namespace than the caller's current network namespace.
-// The current network namespace still can play a role, such as when creating a
-// MACVLAN network interface: then, the MACVLAN's parent network interface
-// reference (in form of an interface index) must be in the scope of the current
+// in a different (“destination”) network namespace than the caller's current
 // network namespace.
+//
+// However, please note that the current network namespace can still play a
+// role, such as when creating a MACVLAN network interface: then, the MACVLAN's
+// parent network interface reference (in form of an interface index) must be in
+// the scope of the current network namespace, or otherwise [WithLinkNamspace]
+// must be specified. Alternatively, a wrapped [Link] can be passed as the
+// [netlink.Link] that specifies the “link” network namespace to use.
+//
+// # Important
 //
 // Do not move a link to a different network namespace, as this interferes with
 // the automated cleanup.
-func NewTransient(link netlink.Link, prefix string) netlink.Link {
+func NewTransient(link netlink.Link, prefix string, opts ...Opt) netlink.Link {
 	GinkgoHelper()
 
 	Expect(link).NotTo(BeNil(), "need a non-nil link description")
 	if _, ok := link.Attrs().Namespace.(netlink.NsFd); link.Attrs().Namespace != nil && !ok {
 		fail("link.Attrs().Namespace reference must be nil or a netlink.NsFd")
+	}
+
+	// If not wrapped already, wrap the passed-in link in preparation of
+	// processing any options.
+	if _, ok := link.(*Link); !ok {
+		link = &Link{Link: link}
+	}
+	l := link.(*Link)
+	for _, opt := range opts {
+		Expect(opt(l)).To(Succeed())
 	}
 
 	// Callers might pass in a wrapped.Link in order to transport network
