@@ -37,6 +37,9 @@ import (
 func Link(dupond, dupont netlink.Link) {
 	GinkgoHelper()
 
+	Expect(dupond).NotTo(BeNil(), "dupond/first link must be non-nil")
+	Expect(dupont).NotTo(BeNil(), "dupond/second link must be non-nil")
+
 	netnsfd1, ifindex1, err := linkFds(dupond)
 	Expect(err).NotTo(HaveOccurred(), "invalid dupond/first link information")
 	defer unix.Close(netnsfd1)
@@ -58,6 +61,8 @@ func Link(dupond, dupont netlink.Link) {
 // Note: requires Linux kernel 6.9+.
 func Unlink(l netlink.Link) {
 	GinkgoHelper()
+
+	Expect(l).NotTo(BeNil(), "link must be non-nil")
 
 	netnsfd, ifindex, err := linkFds(l)
 	Expect(err).NotTo(HaveOccurred(), "invalid link information")
