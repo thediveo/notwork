@@ -22,9 +22,8 @@ import (
 	vishnetns "github.com/vishvananda/netns"
 	"golang.org/x/sys/unix"
 
-	. "github.com/onsi/ginkgo/v2"   //lint:ignore ST1001 rule does not apply
-	. "github.com/onsi/gomega"      //lint:ignore ST1001 rule does not apply
-	. "github.com/thediveo/success" //lint:ignore ST1001 rule does not apply
+	. "github.com/onsi/ginkgo/v2" //lint:ignore ST1001 rule does not apply
+	. "github.com/onsi/gomega"    //lint:ignore ST1001 rule does not apply
 )
 
 // Link to netdevsim “port” interfaces with each other. Please note that the
@@ -79,14 +78,22 @@ func linkFds(l netlink.Link) (netnsfd int, ifindex int, err error) {
 	if netnsfd, ok := l.Attrs().Namespace.(netlink.NsFd); ok {
 		netnsfd, err := unix.Dup(int(netnsfd))
 		if err != nil {
-			return 0, 0, fmt.Errorf("cannot duplicate netns fd reference, reason: %w", err)
+			return 0, 0, fmt.Errorf("cannot duplicate network namespace fd reference, reason: %w", err)
 		}
 		if ifindex == 0 {
 			// Get the interface index, when necessary; and in the correct
 			// network namespace...
-			nlh := Successful(netlink.NewHandleAt(vishnetns.NsHandle(netnsfd)))
+			nlh, err := netlink.NewHandleAt(vishnetns.NsHandle(netnsfd))
+			if err != nil {
+				unix.Close(netnsfd)
+				return 0, 0, fmt.Errorf("invalid network namespace fd reference, reason: %w", err)
+			}
 			defer nlh.Close()
-			l := Successful(nlh.LinkByName(l.Attrs().Name))
+			l, err := nlh.LinkByName(l.Attrs().Name)
+			if err != nil {
+				unix.Close(netnsfd)
+				return 0, 0, fmt.Errorf("cannot determine link index, reason: %w", err)
+			}
 			ifindex = l.Attrs().Index
 		}
 		return netnsfd, ifindex, nil
@@ -94,7 +101,10 @@ func linkFds(l netlink.Link) (netnsfd int, ifindex int, err error) {
 	// If the network interface index is not known, we need to get it by asking
 	// for the details of the network interface by its name.
 	if ifindex == 0 {
-		l := Successful(netlink.LinkByName(l.Attrs().Name))
+		l, err := netlink.LinkByName(l.Attrs().Name)
+		if err != nil {
+			return 0, 0, fmt.Errorf("cannot determine link index, reason: %w", err)
+		}
 		ifindex = l.Attrs().Index
 	}
 	// We're not locking the go routine, as either it doesn't matter (all
