@@ -16,6 +16,7 @@ package mntns
 
 import (
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/thediveo/notwork/netns"
@@ -40,6 +41,14 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 				ShouldNot(HaveLeaked(goodgos))
 			Expect(Filedescriptors()).NotTo(HaveLeakedFds(goodfds))
 		})
+	})
+
+	It("returns the correct Ino", func() {
+		mntnsfd, procfsroot := NewTransient()
+		Expect(mntnsfd).NotTo(BeZero())
+		Expect(procfsroot).NotTo(BeEmpty())
+
+		Expect(Ino(mntnsfd)).To(Equal(Ino(filepath.Join(procfsroot, "../ns/mnt"))))
 	})
 
 	It("rejects mounting sysfs in the original mount namespace", func() {
