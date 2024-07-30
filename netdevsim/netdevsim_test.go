@@ -49,8 +49,7 @@ var _ = Describe("creates netdevsim network interfaces", Ordered, func() {
 		DeferCleanup(func() {
 			Eventually(Goroutines).Within(2 * time.Second).ProbeEvery(100 * time.Millisecond).
 				ShouldNot(HaveLeaked(goodgos))
-			Eventually(Filedescriptors).Within(2 * time.Second).ProbeEvery(100 * time.Millisecond).
-				ShouldNot(HaveLeakedFds(goodfds))
+			Expect(Filedescriptors()).NotTo(HaveLeakedFds(goodfds))
 		})
 	})
 
@@ -154,13 +153,63 @@ var _ = Describe("creates netdevsim network interfaces", Ordered, func() {
 			Expect(err).To(Succeed())
 		})
 
-		It("links two peers in the current netns", func() {
+		It("reject invalid network namespace references", func() {
+			Expect(linkFds(&netlink.GenericLink{
+				LinkAttrs: netlink.LinkAttrs{
+					Namespace: netlink.NsFd(666),
+				},
+			})).Error().To(HaveOccurred())
+
+			Expect(linkFds(&netlink.GenericLink{
+				LinkAttrs: netlink.LinkAttrs{
+					Namespace: netlink.NsFd(0),
+				},
+			})).Error().To(HaveOccurred())
+		})
+
+		It("rejects an invalid name", func() {
+			Expect(linkFds(&netlink.GenericLink{
+				LinkAttrs: netlink.LinkAttrs{
+					Name: "%NOT-EXIST%",
+				},
+			})).Error().To(HaveOccurred())
+
+			netnsfd := netns.NewTransient()
+			Expect(linkFds(&netlink.GenericLink{
+				LinkAttrs: netlink.LinkAttrs{
+					Name:      "%NOT-EXIST%",
+					Namespace: netlink.NsFd(netnsfd),
+				},
+			})).Error().To(HaveOccurred())
+		})
+
+		It("links and unlinks two peers in the current netns", func() {
 			defer netns.EnterTransient()()
 
 			_, portnifs1 := NewTransient()
 			_, portnifs2 := NewTransient()
 			Link(portnifs1[0], portnifs2[0])
 			Unlink(portnifs2[0])
+		})
+
+		It("links and unlinks two peers in two different network namespaces", func() {
+			netnsfd1 := netns.NewTransient()
+			_, portnifs1 := NewTransient(InNamespace(netnsfd1))
+			Expect(netlink.LinkByName(portnifs1[0].Attrs().Name)).Error().To(HaveOccurred())
+			nlh1 := netns.NewNetlinkHandle(netnsfd1)
+			Expect(nlh1.LinkByName(portnifs1[0].Attrs().Name)).Error().NotTo(HaveOccurred())
+
+			netnsfd2 := netns.NewTransient()
+			_, portnifs2 := NewTransient(InNamespace(netnsfd2))
+			Expect(netlink.LinkByName(portnifs2[0].Attrs().Name)).Error().To(HaveOccurred())
+			nlh2 := netns.NewNetlinkHandle(netnsfd2)
+			Expect(nlh2.LinkByName(portnifs2[0].Attrs().Name)).Error().NotTo(HaveOccurred())
+
+			portnifs1[0].Attrs().Namespace = netlink.NsFd(netnsfd1)
+			portnifs2[0].Attrs().Namespace = netlink.NsFd(netnsfd2)
+
+			Link(portnifs1[0], portnifs2[0])
+			Unlink(portnifs1[0])
 		})
 
 	})

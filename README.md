@@ -6,16 +6,25 @@
 [![goroutines](https://img.shields.io/badge/go%20routines-not%20leaking-success)](https://pkg.go.dev/github.com/onsi/gomega/gleak)
 [![file descriptors](https://img.shields.io/badge/file%20descriptors-not%20leaking-success)](https://pkg.go.dev/github.com/thediveo/fdooze)
 [![Go Report Card](https://goreportcard.com/badge/github.com/thediveo/whalewatcher)](https://goreportcard.com/report/github.com/thediveo/notwork)
-![Coverage](https://img.shields.io/badge/Coverage-84.3%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-94.2%25-brightgreen)
 
 A tiny package to help with creating transient Linux virtual network elements
-for testing purposes. It leverages both the
-[Ginkgo](https://github.com/onsi/ginkgo) testing framework and matching (erm,
-sic!) [Gomega](https://github.com/onsi/gomega) matchers.
+for testing purposes, without having to deal with the tedious details of proper
+and robust cleanup.
+
+`notwork` leverages the
+[vishvananda/netlink](https://github.com/vishvananda/netlink) module for
+RTNETLINK communication, as well as the [Ginkgo](https://github.com/onsi/ginkgo)
+testing framework with [Gomega](https://github.com/onsi/gomega) matchers.
 
 ## Usage Example
 
-To create a transient MACVLAN network interface with a dummy-type parent network interface for the duration of a test (node):
+Usually, you don't want to trash around in the host's network namespace.
+Insteaed, let's trash around in a transient "throw-away" network namespace, just
+created for testing purposes and removed at the end of the current test.
+
+In it, we create a transient MACVLAN network interface with a dummy-type parent
+network interface, also only for the duration of the current test (node):
 
 ```go
 import (
@@ -28,7 +37,11 @@ import (
 
 var _ = Describe("some testing", func() {
 
-    It("creates a transient MACVLAN with a dummy parent", func() {
+    It("creates a transient MACVLAN with a dummy parent in a throw-away network namespace", func() {
+        defer netns.EnterTransient()() // !!! double ()()
+        // current temporary network namespace will be remove automatically
+        // at the end of this test.
+
         mcvlan := macvlan.NewTransient(dummy.NewTransient())
         // ...virtual network interface will be automatically removed
         // at the end of this test.
@@ -37,37 +50,10 @@ var _ = Describe("some testing", func() {
 })
 ```
 
-## Using Throw-Away Network Namespaces
-
-Even better, don't trash around the host network namespace, but instead use a
-throw-away network namespace that is separate from the host network namespace.
-
-```go
-import (
-    "github.com/thediveo/notwork/dummy"
-    "github.com/thediveo/notwork/macvlan"
-    "github.com/thediveo/notwork/netns"
-
-    . "github.com/onsi/ginkgo/v2"
-    . "github.com/onsi/gomega"
-)
-
-var _ = Describe("some isolated testing", func() {
-
-    It("creates a transient MACVLAN with a dummy parent inside a throw-away netns", func() {
-        defer netns.EnterTransient()() // !!! double ()()
-        // we're not in a new transient network namespace and there's just
-        // a lonely lo at this time.
-        mcvlan := macvlan.NewTransient(dummy.NewTransient())
-    })
-
-})
-```
-
 ## VETH Pair Ends in Different Network Namespaces
 
-With the previous examples under our black notwork belts, let's create a VETH
-pair of network interfaces that connect two transient network namespaces.
+With the previous example under our black notwork belts, let's create a VETH
+pair of network interfaces that connect _two transient_ network namespaces.
 
 ```go
 import (

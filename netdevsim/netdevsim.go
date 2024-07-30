@@ -15,7 +15,6 @@
 package netdevsim
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -95,7 +94,13 @@ func NewTransient(opts ...Opt) (id uint, links []netlink.Link) {
 
 // newTransient does the real work of creating a netdevsim device with the given
 // configuration options.
+//
+// Please note that newTransient always creates the netdevsim network interface
+// in the current network namespace. So the caller needs to switch to a
+// different network namespace where needed.
 func newTransient(options *Options) (uint, []netlink.Link) {
+	GinkgoHelper()
+
 	// We need a NETLINK devlink API connection in order to query netdevsim
 	// device information, such as the mapping of ports to network interface
 	// names.
@@ -190,51 +195,6 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 	}
 	fail("too many failed attempts to create a transient netdevsim")
 	return 0, nil // not reachable
-}
-
-// WithID configures a new netdevsim to use the specified ID, as opposed to the
-// lowest available ID.
-func WithID(id uint) Opt {
-	return func(o *Options) error {
-		o.HasID = true
-		o.ID = id
-		return nil
-	}
-}
-
-// WithPorts configures a new netdevsim to have the specified number of ports
-// (=individual network interfaces).
-func WithPorts(n uint) Opt {
-	return func(o *Options) error {
-		o.Ports = n
-		return nil
-	}
-}
-
-// WithRxTxQueueCountEach configures a new netdevsim to have the specified
-// number of RX as well as TX queues. Specifying a zero queue count results in
-// an error when trying to create a netdevsim.
-func WithRxTxQueueCountEach(n uint) Opt {
-	return func(o *Options) error {
-		if n == 0 {
-			return errors.New("RX/TX queue count cannot be zero")
-		}
-		o.QueueCount = n
-		return nil
-	}
-}
-
-// InNamespace configures a new netdevsim to have its port network interface(s)
-// to be created in the network namespace referenced by fdref, instead of
-// creating it in the current network namespace.
-func InNamespace(fdref int) Opt {
-	return func(o *Options) error {
-		if fdref < 0 {
-			return fmt.Errorf("invalid netns fd %d", fdref)
-		}
-		o.NetnsFd = fdref
-		return nil
-	}
 }
 
 // availableID returns the lowest available netdevsim ID.
