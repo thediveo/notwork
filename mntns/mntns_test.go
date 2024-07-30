@@ -65,8 +65,8 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 			ConsistOf(HaveField("Name()", "lo")))
 	})
 
-	It("creates a transient mount namespace and then mounts a new sysfs into it", func() {
-		netnsfd := netns.NewTransient()
+	It("creates new transient network and mount namespaces and then mounts a new sysfs into it", func() {
+		defer netns.EnterTransient()()
 
 		hostMntnsID := Ino("/proc/thread-self/ns/mnt")
 
@@ -77,9 +77,7 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 		Execute(mntnsfd, func() {
 			defer GinkgoRecover()
 			Expect(Ino("/proc/thread-self/ns/mnt")).NotTo(Equal(hostMntnsID))
-			netns.Execute(netnsfd, func() {
-				MountSysfsRO()
-			})
+			MountSysfsRO()
 		})
 
 		Expect(Successful(os.ReadDir(procfsroot + "/sys/class/net"))).To(
