@@ -153,6 +153,36 @@ var _ = Describe("creates netdevsim network interfaces", Ordered, func() {
 			Expect(err).To(Succeed())
 		})
 
+		It("reject invalid network namespace references", func() {
+			Expect(linkFds(&netlink.GenericLink{
+				LinkAttrs: netlink.LinkAttrs{
+					Namespace: netlink.NsFd(666),
+				},
+			})).Error().To(HaveOccurred())
+
+			Expect(linkFds(&netlink.GenericLink{
+				LinkAttrs: netlink.LinkAttrs{
+					Namespace: netlink.NsFd(0),
+				},
+			})).Error().To(HaveOccurred())
+		})
+
+		It("rejects an invalid name", func() {
+			Expect(linkFds(&netlink.GenericLink{
+				LinkAttrs: netlink.LinkAttrs{
+					Name: "%NOT-EXIST%",
+				},
+			})).Error().To(HaveOccurred())
+
+			netnsfd := netns.NewTransient()
+			Expect(linkFds(&netlink.GenericLink{
+				LinkAttrs: netlink.LinkAttrs{
+					Name:      "%NOT-EXIST%",
+					Namespace: netlink.NsFd(netnsfd),
+				},
+			})).Error().To(HaveOccurred())
+		})
+
 		It("links and unlinks two peers in the current netns", func() {
 			defer netns.EnterTransient()()
 
