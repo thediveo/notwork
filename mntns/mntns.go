@@ -110,7 +110,7 @@ func mountSysfs(g Gomega, flags uintptr, data string) {
 }
 
 // NewTransient creates a new transient mount namespace that is kept alive by a
-// an idle OS-level thread; this thread is automatically terminated upon
+// an idle OS-level thread; this idle thread is automatically terminated upon
 // returning from the current test.
 func NewTransient() (mntfd int, procfsroot string) {
 	GinkgoHelper()
@@ -122,7 +122,7 @@ func NewTransient() (mntfd int, procfsroot string) {
 	// Kick off a separate Go routine which we then can lock to its OS-level
 	// thread and later dispose off because it is tainted due to unsharing the
 	// sharing of file attributes.
-	readyCh := make(chan idler)
+	readyCh := make(chan idlerDetails)
 	go func() {
 		defer GinkgoRecover()
 		runtime.LockOSThread()
@@ -142,7 +142,7 @@ func NewTransient() (mntfd int, procfsroot string) {
 		Expect(unix.Mount("none", "/", "/", unix.MS_REC|unix.MS_PRIVATE, "")).To(Succeed(),
 			"cannot change / mount propagation to private")
 
-		readyCh <- idler{
+		readyCh <- idlerDetails{
 			mntnsfd: Current(),
 			tid:     unix.Gettid(),
 		}
@@ -155,16 +155,20 @@ func NewTransient() (mntfd int, procfsroot string) {
 	return idlerInfo.mntnsfd, procfsroot
 }
 
-type idler struct {
+type idlerDetails struct {
 	mntnsfd int
 	tid     int
 }
 
-// Execute a function fn in a separate Go routine in the mount namespace
+// Execute a function fn in a separate(!) Go routine in the mount namespace
 // referenced by the open file descriptor mntnsfd. In order to avoid race
 // issues, the calling Go routine is blocked until the called fn returns. Any
-// results of the called fn should be communicated back to the caller using a
-// buffered(!) channel.
+// results of the called fn should be communicated back from fn to the caller
+// using a buffered(!) channel.
+//
+// Execute additionally switches the fn executing Go routine to the network
+// namespace of the caller if the caller's Go routine network namespace differs
+// from the network namespace of the process itself.
 func Execute(mntnsfd int, fn func()) {
 	GinkgoHelper()
 	execute(Default, mntnsfd, fn)
@@ -172,6 +176,14 @@ func Execute(mntnsfd int, fn func()) {
 
 func execute(g Gomega, mntnsfd int, fn func()) {
 	done := make(chan struct{})
+
+	// If this is called on a locked OS-level thread, then this potentially
+	// gives us a network namespace different from the host's/process's,
+	// otherwise we simply end up with what is basically the process's network
+	// namespace.
+	//
+	// And yes, we really mean "network" namespace, not mount namespace.
+	callersNetnsRef := fmt.Sprintf("/proc/%d/ns/net", unix.Gettid())
 
 	// We need to use a separate Go routine because we next need to unshare
 	// sharing of file attributes with other OS-level threads of this process.
@@ -183,6 +195,14 @@ func execute(g Gomega, mntnsfd int, fn func()) {
 		}()
 		defer GinkgoRecover()
 		runtime.LockOSThread()
+		if Ino(callersNetnsRef) != Ino("/proc/self/ns/net") {
+			callersNetnsFd, err := unix.Open(callersNetnsRef, unix.O_RDONLY, 0)
+			Expect(err).NotTo(HaveOccurred(), "cannot determine caller's current network namespace")
+			err = unix.Setns(callersNetnsFd, unix.CLONE_NEWNET)
+			unix.Close(callersNetnsFd)
+			Expect(err).NotTo(HaveOccurred(), "cannot switch into caller's current network namespace")
+		}
+
 		g.Expect(unix.Unshare(unix.CLONE_FS)).To(Succeed(), "cannot unshare file attributes of transient execution thread")
 		g.Expect(unix.Setns(mntnsfd, unix.CLONE_NEWNS), "cannot switch into mount namespace")
 		fn()
