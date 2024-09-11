@@ -20,11 +20,12 @@ testing framework with [Gomega](https://github.com/onsi/gomega) matchers.
 ## Usage Example
 
 Usually, you don't want to trash around in the host's network namespace.
-Insteaed, let's trash around in a transient "throw-away" network namespace, just
-created for testing purposes and removed at the end of the current test.
+Instead, let's trash around in a ephemeral ("throw-away") network namespace,
+just created for testing purposes and removed at the end of the _current_ test
+node.
 
-In it, we create a transient MACVLAN network interface with a dummy-type parent
-network interface, also only for the duration of the current test (node):
+In it, we create a transient MACVLAN-type network interface with a dummy-type
+parent network interface, also only for the duration of the current test (node):
 
 ```go
 import (
@@ -49,6 +50,9 @@ var _ = Describe("some testing", func() {
 
 })
 ```
+
+> [!IMPORTANT]
+> Notice the double `()()` when `defer`'ing `netns.EnterTransient`.
 
 ## VETH Pair Ends in Different Network Namespaces
 
@@ -75,6 +79,10 @@ var _ = Describe("some isolated testing", func() {
 As for the names of the VETH pair end variables, please refer to [Dupond et
 Dupont](https://en.wikipedia.org/wiki/Thomson_and_Thompson).
 
+## Go Version Support
+
+`notwork` supports versions of Go that are noted by the Go release policy, that
+is, major versions _N_ and _N_-1 (where _N_ is the current major version).
 
 ## Make Targets
 
@@ -96,4 +104,4 @@ Dupont](https://en.wikipedia.org/wiki/Thomson_and_Thompson).
 
 ## Copyright and License
 
-Copyright 2023 Harald Albrecht, licensed under the Apache License, Version 2.0.
+Copyright 2023–24 Harald Albrecht, licensed under the Apache License, Version 2.0.
