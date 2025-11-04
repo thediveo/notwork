@@ -17,9 +17,11 @@ package ensure
 import (
 	"os"
 
+	"github.com/hofstadter-io/cinful"
+	"pault.ag/go/modprobe"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"pault.ag/go/modprobe"
 )
 
 var _ = Describe("loading and unloading the netsimdev bus", Ordered, func() {
@@ -43,6 +45,9 @@ var _ = Describe("loading and unloading the netsimdev bus", Ordered, func() {
 		BeforeAll(func() {
 			if os.Getuid() != 0 {
 				Skip("needs root")
+			}
+			if cinful.Info() != nil {
+				Skip("not in CI")
 			}
 		})
 
