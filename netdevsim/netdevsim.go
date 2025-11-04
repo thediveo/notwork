@@ -57,6 +57,9 @@ const (
 )
 
 // HasNetdevsim returns true if netdevsims are available on this host.
+//
+// Deprecated: use [load.Try] instead that tries to load the netdevsim kernel
+// module if not yet loaded.
 func HasNetdevsim() bool {
 	_, err := os.Stat(netdevsimRoot)
 	return err == nil

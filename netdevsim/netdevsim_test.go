@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/mdlayher/devlink"
+	"github.com/thediveo/notwork/netdevsim/load"
 	"github.com/thediveo/notwork/netns"
 	"github.com/vishvananda/netlink"
 
@@ -35,11 +36,8 @@ import (
 var _ = Describe("creates netdevsim network interfaces", Ordered, func() {
 
 	BeforeAll(func() {
-		if os.Getuid() != 0 {
-			Skip("needs root")
-		}
-		if !HasNetdevsim() {
-			Skip("needs loaded kernel module netdevsim")
+		if !load.Try() {
+			Skip("needs kernel module netdevsim")
 		}
 	})
 
