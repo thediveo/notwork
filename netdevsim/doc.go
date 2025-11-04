@@ -3,6 +3,17 @@ Package netdevsim helps with creating transient [netdevsim] type virtual network
 interfaces for testing purposes. It leverages the [Ginkgo] testing framework and
 matching (erm, sic!) [Gomega] matchers.
 
+# Caveat Emptor
+
+From the [kernel perspective], “netdevsim is a test driver which can be used to
+exercise driver configuration APIs without requiring capable hardware. [...] We
+give no guarantees that netdevsim won’t change in the future in a way which
+would break what would normally be considered uAPI.” (uAPI = “userspace API”).
+
+With that made clear, let's trespass and move on...
+
+# Test Long and Prosper
+
 Technically, a netdevsim in the strict sense is a device on the “netdevsim” bus.
 A netdevsim bus device then has a number of ports, where these ports corresponds
 with netdevs/network interfaces provided by the netdevsim device. For
@@ -21,6 +32,13 @@ linked together, similar to “veth” pairs.
 On at least some Linux distributions, you might need to explicitly modprobe the
 “netdevsim” module. For what it's worth, the Linux kernel self-tests also
 modprobe the netdevsim module.
+
+For your convenience, you might want to simply call [ensure.Netdevsim] and check
+its bool result:
+  - true indicates that the netdevsim bus is available (in the worst case by
+    loading the required kernel module when necessary),
+  - false indicates that either the caller isn't root and thus cannot manage
+    netdevsim devices anyway, or the required kernel module could not be loaded.
 
 # Background Information
 
@@ -43,9 +61,13 @@ associated problems around sysfs and non-adaptive network namespacing.
 This package works around the situation by creating netdevsims with multiple
 ports piecemeal-wise, picking up the newly created ports piece by piece.
 
+It should now go without saying, but don't run multiple netdevsim-related tests
+concurrently.
+
 [netdevsim]: https://docs.kernel.org/process/maintainer-netdev.html#netdevsim
 [Ginkgo]: https://github.com/onsi/ginkgo
 [Gomega]: https://github.com/onsi/gomega
 [DeferCleanup]: https://pkg.go.dev/github.com/onsi/ginkgo/v2#DeferCleanup
+[kernel perspective]: https://docs.kernel.org/process/maintainer-netdev.html#netdevsim
 */
 package netdevsim

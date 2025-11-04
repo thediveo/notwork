@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package load
+package ensure
 
 import (
 	"os"
@@ -33,7 +33,7 @@ var _ = Describe("loading and unloading the netsimdev bus", Ordered, func() {
 		})
 
 		It("always returns false", func() {
-			Expect(TryRoot("/")).To(BeFalse())
+			Expect(NetdevsimRoot("/")).To(BeFalse())
 		})
 
 	})
@@ -58,9 +58,9 @@ var _ = Describe("loading and unloading the netsimdev bus", Ordered, func() {
 
 			_ = modprobe.Remove("netdevsim")
 			Expect("/sys/bus/netdevsim").NotTo(BeAnExistingFile(), "netdevsim could not be unloaded for test")
-			Expect(Try()).To(BeTrue())
+			Expect(Netdevsim()).To(BeTrue())
 			Expect("/sys/bus/netdevsim").To(BeADirectory())
-			Expect(Try()).To(BeTrue())
+			Expect(Netdevsim()).To(BeTrue())
 			Expect("/sys/bus/netdevsim").To(BeADirectory())
 		})
 

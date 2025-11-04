@@ -28,6 +28,7 @@ var _ = Describe("MACVLAN configuration options", func() {
 			WithID(123),
 			WithPorts(10),
 			WithRxTxQueueCountEach(666),
+			WithMaxVFs(42),
 		} {
 			Expect(opt(o)).To(Succeed())
 		}
@@ -36,6 +37,7 @@ var _ = Describe("MACVLAN configuration options", func() {
 		Expect(o.ID).To(Equal(uint(123)))
 		Expect(o.Ports).To(Equal(uint(10)))
 		Expect(o.QueueCount).To(Equal(uint(666)))
+		Expect(o.MaxVFs).To(Equal(uint(42)))
 	})
 
 })

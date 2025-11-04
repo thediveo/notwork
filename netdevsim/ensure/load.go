@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package load
+package ensure
 
 import (
 	"errors"
@@ -23,16 +23,17 @@ import (
 	"pault.ag/go/modprobe"
 )
 
-// Try checks if the caller is root and netdevsim is available as a system bus,
-// returning true, otherwise attempting to load the required kernel module.
+// Netdevsim checks first that the caller is root and then that netdevsim is
+// available as a system bus, returning true; otherwise, it attempts to load the
+// required kernel module.
 //
-// Please note that Try does use a pure-Go kernel module prober and loader
+// Please note that Netdevsim does use a pure-Go kernel module prober and loader
 // ([modprobe.Load]), so modprobe(8) doesn't need to be present.
-func Try() bool { return TryRoot("/") }
+func Netdevsim() bool { return NetdevsimRoot("/") }
 
-// TryRoot is like [Try], but expects sys/bus/netdevsim to be inside the
-// specified sysfsroot, instead of "/".
-func TryRoot(sysfsroot string) bool {
+// NetdevsimRoot is like [Netdevsim], but expects “sys/bus/netdevsim” to be rooted
+// at the specified sysfsroot, instead of the default “/”.
+func NetdevsimRoot(sysfsroot string) bool {
 	// managing netdevsim devices requires root, because creating and
 	// linking/unlinking netdevsim devices goes through the DAC of the
 	// filesystem inside /sys/bus/netdevsim. Thus, if we're not root, even with

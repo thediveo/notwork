@@ -23,6 +23,7 @@ import (
 
 	"github.com/mdlayher/devlink"
 	"github.com/thediveo/notwork/link"
+	"github.com/thediveo/notwork/netdevsim/ensure"
 	"github.com/thediveo/notwork/netns"
 	"github.com/vishvananda/netlink"
 
@@ -35,7 +36,10 @@ import (
 // of a transient netdevsim device.
 const NetdevsimPrefix = "ndsi-"
 
-var fail = Fail // allow testing Fails without terminally failing the current test.
+var (
+	_    = ensure.Netdevsim // ?%$@~*! godoc
+	fail = Fail             // allow testing Fails without terminally failing the current test.
+)
 
 type Options struct {
 	HasID      bool // false means: shut up and get me the next available ID!
@@ -43,6 +47,7 @@ type Options struct {
 	Ports      uint
 	QueueCount uint // per RX and per TX respectively
 	NetnsFd    int  // valid when >= 0
+	MaxVFs     uint
 }
 
 // Opt is a configuration option when creating a new netdevsim network
@@ -133,14 +138,14 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 		id = options.ID
 		if !options.HasID {
 			var err error
-			id, err = availableID()
+			id, err = lowestAvailableID()
 			Expect(err).NotTo(HaveOccurred(), "cannot determine available ID")
 		}
 		By(fmt.Sprintf("creating a transient netdevsim device with ID %d", id))
 		// Create the netdevsim device, as well as its ports and thus network
 		// interfaces...
 		err := os.WriteFile(netdevsimRoot+"/new_device",
-			[]byte(fmt.Sprintf("%d %d %d", id, options.Ports, options.QueueCount)), 0)
+			fmt.Appendf(nil, "%d %d %d", id, options.Ports, options.QueueCount), 0)
 		if err != nil {
 			if options.HasID {
 				fail(fmt.Sprintf("cannot create a netdevsim with ID %d, reason: %s",
@@ -156,6 +161,12 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 		Eventually(func() string { return devpath }).
 			Within(2*time.Second).ProbeEvery(1*time.Millisecond).
 			Should(BeADirectory(), "netdevsim with ID %d failed to materialize", id)
+			// Set the number of VFs
+		err = os.WriteFile(devpath+"/sriov_numvfs", []byte(strconv.FormatUint(uint64(options.MaxVFs), 10)), 0)
+		if err != nil {
+			fail(fmt.Sprintf("cannot set maximum number of %d SR-IOV VFs on netdev with ID %d, reason: %s",
+				options.MaxVFs, id, err.Error()))
+		}
 		// Get the names of the port network interfaces and then rename them using random names.
 		nifnames := Successful(portNifnames(devlink, id))
 		links := make([]netlink.Link, 0, len(nifnames))
@@ -200,8 +211,8 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 	return 0, nil // not reachable
 }
 
-// availableID returns the lowest available netdevsim ID.
-func availableID() (uint, error) {
+// lowestAvailableID returns the lowest available netdevsim ID.
+func lowestAvailableID() (uint, error) {
 	devsdirf, err := os.Open(netdevsimDevicesPath)
 	if err != nil {
 		return 0, fmt.Errorf("cannot list existing netdevsim instances, reason: %w", err)
