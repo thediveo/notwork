@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/mdlayher/devlink"
+	"github.com/thediveo/notwork/netdevsim/ensure"
 	"github.com/thediveo/notwork/netns"
 	"github.com/vishvananda/netlink"
 
@@ -35,11 +36,8 @@ import (
 var _ = Describe("creates netdevsim network interfaces", Ordered, func() {
 
 	BeforeAll(func() {
-		if os.Getuid() != 0 {
-			Skip("needs root")
-		}
-		if !HasNetdevsim() {
-			Skip("needs loaded kernel module netdevsim")
+		if !ensure.Netdevsim() {
+			Skip("needs kernel module netdevsim")
 		}
 	})
 
@@ -59,9 +57,9 @@ var _ = Describe("creates netdevsim network interfaces", Ordered, func() {
 		defer netns.EnterTransient()()
 
 		By("getting a first available ID")
-		id1 := Successful(availableID())
+		id1 := Successful(lowestAvailableID())
 		// Expecting the same ID to be found again...
-		Expect(availableID()).To(Equal(id1))
+		Expect(lowestAvailableID()).To(Equal(id1))
 
 		By("creating a first netdevsim instance")
 		Expect(os.WriteFile(netdevsimRoot+"/new_device",
@@ -72,7 +70,7 @@ var _ = Describe("creates netdevsim network interfaces", Ordered, func() {
 		}()
 
 		By("getting a second, different available ID")
-		id2 := Successful(availableID())
+		id2 := Successful(lowestAvailableID())
 		Expect(id2).NotTo(Equal(id1))
 	})
 
@@ -88,7 +86,7 @@ var _ = Describe("creates netdevsim network interfaces", Ordered, func() {
 		It("returns a list of network interface names for the ports of a netdevsim device", func() {
 			defer netns.EnterTransient()()
 
-			id := Successful(availableID())
+			id := Successful(lowestAvailableID())
 			Expect(os.WriteFile(netdevsimRoot+"/new_device",
 				[]byte(fmt.Sprintf("%d 2 1", id)), 0)).To(Succeed())
 			defer func() {
@@ -118,6 +116,17 @@ var _ = Describe("creates netdevsim network interfaces", Ordered, func() {
 			Expect(portnifs[0].Attrs().Name).To(HavePrefix(NetdevsimPrefix))
 			Expect(Successful(net.Interfaces())).To(
 				ContainElement(HaveField("Name", portnifs[0].Attrs().Name)))
+		})
+
+		It("creates a netdevsim with VFs", func() {
+			defer netns.EnterTransient()()
+
+			_, portnifs := NewTransient(
+				WithPorts(1),
+				WithRxTxQueueCountEach(1),
+				WithMaxVFs(4))
+			pf := Successful(netlink.LinkByName(portnifs[0].Attrs().Name))
+			Expect(pf.Attrs().Vfs).To(HaveLen(4))
 		})
 
 		It("creates a multi-port netdevsim", func() {

@@ -51,6 +51,15 @@ func WithRxTxQueueCountEach(n uint) Opt {
 	}
 }
 
+// WithMaxVFs configures a new netdevsim to have the specified number of VFs.
+// Specifying zero means “no VFs”.
+func WithMaxVFs(n uint) Opt {
+	return func(o *Options) error {
+		o.MaxVFs = n
+		return nil
+	}
+}
+
 // InNamespace configures a new netdevsim to have its port network interface(s)
 // to be created in the network namespace referenced by fdref, instead of
 // creating it in the current network namespace.
