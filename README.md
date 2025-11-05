@@ -88,7 +88,7 @@ Dupont](https://en.wikipedia.org/wiki/Thomson_and_Thompson).
 > Volume~~" command, as it is utterly broken by design, ignoring
 > `.devcontainer/devcontainer.json`.
 
-1. `git clone https://github.com/thediveo/enumflag`
+1. `git clone https://github.com/thediveo/notwork`
 2. in VSCode: Ctrl+Shift+P, "Dev Containers: Open Workspace in Container..."
 3. select `notwork.code-workspace` and off you go...
 
