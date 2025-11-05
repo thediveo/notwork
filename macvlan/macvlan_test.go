@@ -19,6 +19,8 @@ import (
 	"time"
 
 	"github.com/thediveo/notwork/dummy"
+	"github.com/thediveo/notwork/netdevsim"
+	"github.com/thediveo/notwork/netdevsim/ensure"
 	"github.com/thediveo/notwork/netns"
 	"github.com/vishvananda/netlink"
 
@@ -55,6 +57,15 @@ var _ = Describe("provides transient MACVLAN network interfaces", Ordered, func(
 	})
 
 	It("finds a hardware NIC in up state", func() {
+		defer netns.EnterTransient()()
+		if !ensure.Netdevsim() {
+			Skip("cannot use netdevsim as suitable fake HW device")
+		}
+		// In order to be able to run this test inside a devcontainer, we need
+		// some netdev that classifies as "HW" device, even if virtual. Virtual
+		// netdevs such as "VETH" do not classify, unfortunately.
+		_, fakehwndev := netdevsim.NewTransient()
+		Expect(netlink.LinkSetUp(fakehwndev[0])).To(Succeed())
 		parent := LocateHWParent()
 		Expect(parent).NotTo(BeNil())
 	})

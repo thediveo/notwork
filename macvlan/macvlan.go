@@ -15,6 +15,8 @@
 package macvlan
 
 import (
+	"slices"
+
 	"github.com/thediveo/notwork/link"
 	"github.com/vishvananda/netlink"
 
@@ -40,15 +42,31 @@ type Opt func(*link.Link) error
 func LocateHWParent() netlink.Link {
 	GinkgoHelper()
 
-	var parents []netlink.Link
 	links, err := netlink.LinkList()
 	Expect(err).NotTo(HaveOccurred(), "cannot retrieve list of netdevs")
-	Expect(links).To(ContainElement(
-		And(
-			HaveField("Type()", "device"),
-			HaveField("Attrs().Name", Not(Equal("lo"))),
-			HaveField("Attrs().OperState", netlink.LinkOperState(netlink.OperUp))),
-		&parents), "could not find any hardware netdev in up state")
+	var parents []netlink.Link
+	for _, link := range links {
+		if link.Type() != "device" || link.Attrs().Name == "lo" ||
+			(link.Attrs().OperState != netlink.OperUp && link.Attrs().OperState != netlink.OperUnknown) {
+			continue
+		}
+		parents = append(parents, link)
+	}
+	// Sort links in OperUp before OperUnknown.
+	slices.SortStableFunc(parents, func(la, lb netlink.Link) int {
+		operA := la.Attrs().OperState
+		operB := lb.Attrs().OperState
+		if operA == operB {
+			return 0
+		}
+		if operA == netlink.OperUnknown {
+			return 1
+		}
+		return -1
+	})
+	if len(parents) == 0 {
+		Fail("could not find any hardware netdev in up/unknown state")
+	}
 	// ContainElement guarantees when in filter result mode that there were
 	// one or more matches and fail otherwise in case of no matches at all.
 	// We just pick "randomly" (obligatory XKCD ref here) the parent to work
