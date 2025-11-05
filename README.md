@@ -2,20 +2,21 @@
 
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/thediveo/notwork)](https://pkg.go.dev/github.com/thediveo/notwork)
 [![GitHub](https://img.shields.io/github/license/thediveo/notwork)](https://img.shields.io/github/license/thediveo/notwork)
-![build and test](https://github.com/thediveo/notwork/workflows/build%20and%20test/badge.svg?branch=master)
+![build and test](https://github.com/thediveo/notwork/actions/workflows/buildandtest.yaml/badge.svg?branch=master)
 [![goroutines](https://img.shields.io/badge/go%20routines-not%20leaking-success)](https://pkg.go.dev/github.com/onsi/gomega/gleak)
 [![file descriptors](https://img.shields.io/badge/file%20descriptors-not%20leaking-success)](https://pkg.go.dev/github.com/thediveo/fdooze)
 [![Go Report Card](https://goreportcard.com/badge/github.com/thediveo/whalewatcher)](https://goreportcard.com/report/github.com/thediveo/notwork)
-![Coverage](https://img.shields.io/badge/Coverage-94.2%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-92.0%25-brightgreen)
 
-A tiny package to help with creating transient Linux virtual network elements
+A small package to help with creating transient Linux virtual network elements
 for testing purposes, without having to deal with the tedious details of proper
 and robust cleanup.
 
 `notwork` leverages the
 [vishvananda/netlink](https://github.com/vishvananda/netlink) module for
-RTNETLINK communication, as well as the [Ginkgo](https://github.com/onsi/ginkgo)
-testing framework with [Gomega](https://github.com/onsi/gomega) matchers.
+[RTNETLINK](https://www.man7.org/linux/man-pages/man7/rtnetlink.7.html)
+communication, as well as the [Ginkgo](https://github.com/onsi/ginkgo) testing
+framework with [Gomega](https://github.com/onsi/gomega) matchers.
 
 ## Usage Example
 
@@ -79,29 +80,28 @@ var _ = Describe("some isolated testing", func() {
 As for the names of the VETH pair end variables, please refer to [Dupond et
 Dupont](https://en.wikipedia.org/wiki/Thomson_and_Thompson).
 
-## Go Version Support
+## DevContainer
 
-`notwork` supports versions of Go that are noted by the Go release policy, that
-is, major versions _N_ and _N_-1 (where _N_ is the current major version).
+> [!CAUTION]
+>
+> Do **not** use VSCode's "~~Dev Containers: Clone Repository in Container
+> Volume~~" command, as it is utterly broken by design, ignoring
+> `.devcontainer/devcontainer.json`.
 
-## Make Targets
+1. `git clone https://github.com/thediveo/enumflag`
+2. in VSCode: Ctrl+Shift+P, "Dev Containers: Open Workspace in Container..."
+3. select `notwork.code-workspace` and off you go...
 
-- `make`: lists all targets.
-- `make coverage`: runs all tests with coverage and then **updates the coverage
-  badge in `README.md`**.
-- `make pkgsite`: installs [`x/pkgsite`](https://golang.org/x/pkgsite/cmd/pkgsite), as
-  well as the [`browser-sync`](https://www.npmjs.com/package/browser-sync) and
-  [`nodemon`](https://www.npmjs.com/package/nodemon) npm packages first, if not
-  already done so. Then runs the `pkgsite` and hot reloads it whenever the
-  documentation changes.
-- `make report`: installs
-  [`@gojp/goreportcard`](https://github.com/gojp/goreportcard) if not yet done
-  so and then runs it on the code base.
-- `make test`: runs **all** tests (as root), always.
-- `make vuln`: installs
-  [`x/vuln/cmd/govulncheck`](https://golang.org/x/vuln/cmd/govulncheck) and then
-  runs it.
+## Supported Go Versions
+
+`notwork` supports versions of Go that are noted by the [Go release
+policy](https://golang.org/doc/devel/release.html#policy), that is, major
+versions _N_ and _N_-1 (where _N_ is the current major version).
+
+## Contributing
+
+Please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Copyright and License
 
-Copyright 2023–24 Harald Albrecht, licensed under the Apache License, Version 2.0.
+Copyright 2023–25 Harald Albrecht, licensed under the Apache License, Version 2.0.
