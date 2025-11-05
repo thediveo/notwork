@@ -1,7 +1,7 @@
 /*
-Package notwork is a tiny package that helps unit tests to create transient
-virtual network interfaces. It leverages [vishvananda/netlink], as well as the
-[Ginkgo] testing framework with [Gomega] matchers.
+Package notwork is a small package that helps unit tests to create transient (or
+ephemeral) virtual network interfaces. It leverages [vishvananda/netlink], as
+well as the [Ginkgo] testing framework with [Gomega] matchers.
 
 # Usage Example
 
@@ -81,26 +81,26 @@ Dupont].
 # Testing /sys/class/net (Sysfs)
 
 Sometimes, the (RT)NETLINK API isn't enough and you need to test production code
-that uses information inside “/sys/class/net”. Unfortunately, sysfs is
-peculiar in that its network view doesn't adapt to a viewer's current network
-namespace. Instead, sysfs freezes the network namespace to display when it gets
-mounted: from then on, it shows the mounter's network namespace that the caller
-was attached to when issuing the mount syscall.
+that uses information inside “/sys/class/net”. Unfortunately, sysfs is peculiar
+in that its network view doesn't adapt to a viewer's current network namespace.
+Instead, sysfs freezes the network namespace to display when it gets mounted:
+from then on, it shows the mounter's network namespace that the caller was
+attached to when issuing the mount syscall.
 
 This module thus supports creating transient mount namespaces and mounting a
 correct sysfs instance.
 
 	import (
-		"github.com/notwork/mntns"
-		"github.com/notwork/netns"
+	    "github.com/notwork/mntns"
+	    "github.com/notwork/netns"
 	)
 
 	It("creates transient mount and network namespaces, mounts a sysfs", func() {
-		defer netns.EnterTransient()()
-		mntnsfd, procfsroot := mntns.NewTransient()
-		mntns.Execute(mntnsfd, func() {
-			mntns.MountSysfsRO()
-		}
+	    defer netns.EnterTransient()()
+	    mntnsfd, procfsroot := mntns.NewTransient()
+	    mntns.Execute(mntnsfd, func() {
+	        mntns.MountSysfsRO()
+	    }
 	})
 
 # Known Limitations
