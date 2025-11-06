@@ -58,6 +58,8 @@ github.com/rogpeppe/go-internal v1.9.0 h1:73kH8U+JUqXU8lRuOHeVHaa/SZPifC7BkcraZV
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
+github.com/thediveo/faf v0.2.1 h1:3wTb6H8cTHMha8T9o28dW5ILArOw054k3fkeEeLnL3U=
+github.com/thediveo/faf v0.2.1/go.mod h1:Hxn++Q5aiiJfIuv+rq1MT/kOdsuwtqkHvwFHSBtGlj4=
 github.com/thediveo/fdooze v0.3.1 h1:T5lARTBZXdDIwdsMNgiwpEY3NT40k1WTRlkoKgk8K+0=
 github.com/thediveo/fdooze v0.3.1/go.mod h1:wf5DDE9ch9MqqoS5ofU5+tOOsZyvp5qrJzQjVIGXUTk=
 github.com/thediveo/fdooze v0.3.2 h1:tBaK/7U1G8wTNwdIe0qH+V7HUJHRsTBtCKnxwH+rF1E=
