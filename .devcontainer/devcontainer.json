@@ -35,7 +35,7 @@
                 "stkb.rewrap",
                 "brunnerh.insert-unicode",
                 "mhutchie.git-graph",
-                "ms-vscode.makefile-tools"
+                "ms-vscode.live-server"
             ]
         }
     }
