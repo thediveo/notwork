@@ -51,6 +51,10 @@ var _ = Describe("loading and unloading the netsimdev bus", Ordered, func() {
 			}
 		})
 
+		It("always fails for a non-directory /sys/bus/netdevsim", func() {
+			Expect(NetdevsimRoot("./_test")).To(BeFalse())
+		})
+
 		It("loads when needed", func() {
 			info, err := os.Stat("/sys/bus/netdevsim")
 			netdevsimPreloaded := err == nil && info.Mode().IsDir()

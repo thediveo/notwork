@@ -63,6 +63,10 @@ var _ = Describe("netdevsim network interfaces", Ordered, func() {
 			})
 		})
 
+		It("has netdevsim loaded", func() {
+			Expect(HasNetdevsim()).To(BeTrue())
+		})
+
 		Context("listing port nifnames", func() {
 
 			It("returns an empty list for a non-existing netdevsim device", func() {
@@ -137,6 +141,24 @@ var _ = Describe("netdevsim network interfaces", Ordered, func() {
 					Expect(netlink.LinkByName(portnifs[0].Attrs().Name)).Error().NotTo(HaveOccurred())
 				})
 				Expect(netlink.LinkByName(portnifs[0].Attrs().Name)).Error().To(HaveOccurred())
+			})
+
+			It("cannot create two netdevsims with the same ID", func() {
+				defer netns.EnterTransient()()
+
+				id := lowestUnusedID("/")
+				_, portnifs := NewTransient(WithID(id))
+				Expect(portnifs).To(HaveLen(1))
+
+				oldfail := fail
+				defer func() { fail = oldfail }()
+				var msg string
+				fail = func(message string, callerSkip ...int) { msg = message; panic(message) }
+				Expect(func() {
+					_, _ = NewTransient(WithID(id))
+				}).To(Panic())
+				fail = oldfail
+				Expect(msg).To(ContainSubstring(fmt.Sprintf("cannot create a netdevsim with ID %d", id)))
 			})
 
 		})

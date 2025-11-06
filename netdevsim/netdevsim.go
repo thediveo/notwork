@@ -152,6 +152,7 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 			if options.HasID {
 				fail(fmt.Sprintf("cannot create a netdevsim with ID %d, reason: %s",
 					id, err.Error()))
+				return 0, nil // not reachable
 			}
 			continue // another attempt
 		}
@@ -168,6 +169,7 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 		if err != nil {
 			fail(fmt.Sprintf("cannot set maximum number of %d SR-IOV VFs on netdev with ID %d, reason: %s",
 				options.MaxVFs, id, err.Error()))
+			return 0, nil // not reachable
 		}
 		// Get the names of the port network interfaces and then rename them using random names.
 		nifnames := Successful(portNifnames(devlink, id))
@@ -200,6 +202,7 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 				continue nextnif
 			}
 			fail("too many failed attempts to generate a random port network interface name")
+			return 0, nil // not reachable
 		}
 		removeNetdevsim = false
 		DeferCleanup(func() {
