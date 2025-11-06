@@ -85,4 +85,16 @@ var _ = Describe("provides transient MACVLAN network interfaces", Ordered, func(
 			HaveField("Attrs().Index", mcvlan.Attrs().Index))
 	})
 
+	DescribeTable("comparing links by OperState",
+		func(lops1, lops2 int, expected int) {
+			Expect(compareLinksByOperState(
+				&netlink.Device{LinkAttrs: netlink.LinkAttrs{OperState: netlink.LinkOperState(lops1)}},
+				&netlink.Device{LinkAttrs: netlink.LinkAttrs{OperState: netlink.LinkOperState(lops2)}},
+			)).To(Equal(expected))
+		},
+		Entry("same state", netlink.OperUp, netlink.OperUp, 0),
+		Entry("a before b", netlink.OperUp, netlink.OperUnknown, -1),
+		Entry("a after b", netlink.OperUnknown, netlink.OperUp, 1),
+	)
+
 })

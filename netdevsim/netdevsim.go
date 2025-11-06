@@ -15,13 +15,17 @@
 package netdevsim
 
 import (
+	"bytes"
 	"fmt"
+	"math"
 	"os"
+	"path/filepath"
+	"slices"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/mdlayher/devlink"
+	"github.com/thediveo/faf"
 	"github.com/thediveo/notwork/link"
 	"github.com/thediveo/notwork/netdevsim/ensure"
 	"github.com/thediveo/notwork/netns"
@@ -137,9 +141,7 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 		// by caller...
 		id = options.ID
 		if !options.HasID {
-			var err error
-			id, err = lowestAvailableID()
-			Expect(err).NotTo(HaveOccurred(), "cannot determine available ID")
+			id = lowestUnusedID("/")
 		}
 		By(fmt.Sprintf("creating a transient netdevsim device with ID %d", id))
 		// Create the netdevsim device, as well as its ports and thus network
@@ -150,6 +152,7 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 			if options.HasID {
 				fail(fmt.Sprintf("cannot create a netdevsim with ID %d, reason: %s",
 					id, err.Error()))
+				return 0, nil // not reachable
 			}
 			continue // another attempt
 		}
@@ -166,6 +169,7 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 		if err != nil {
 			fail(fmt.Sprintf("cannot set maximum number of %d SR-IOV VFs on netdev with ID %d, reason: %s",
 				options.MaxVFs, id, err.Error()))
+			return 0, nil // not reachable
 		}
 		// Get the names of the port network interfaces and then rename them using random names.
 		nifnames := Successful(portNifnames(devlink, id))
@@ -198,6 +202,7 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 				continue nextnif
 			}
 			fail("too many failed attempts to generate a random port network interface name")
+			return 0, nil // not reachable
 		}
 		removeNetdevsim = false
 		DeferCleanup(func() {
@@ -211,33 +216,29 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 	return 0, nil // not reachable
 }
 
-// lowestAvailableID returns the lowest available netdevsim ID.
-func lowestAvailableID() (uint, error) {
-	devsdirf, err := os.Open(netdevsimDevicesPath)
-	if err != nil {
-		return 0, fmt.Errorf("cannot list existing netdevsim instances, reason: %w", err)
-	}
-	defer devsdirf.Close()
-	devDirEntries, err := devsdirf.ReadDir(-1)
-	if err != nil {
-		return 0, fmt.Errorf("cannot list existing netdevsim instances, reason: %w", err)
-	}
-	ids := map[uint]struct{}{}
-	for _, devEntry := range devDirEntries {
-		name := strings.TrimPrefix(devEntry.Name(), netdevsimDevicePrefix)
-		id, err := strconv.ParseUint(name, 10, 32)
-		if err != nil {
+// lowestUnusedID returns the lowest available netdevsim ID (which start from
+// zero).
+func lowestUnusedID(sysfsroot string) uint {
+	netdevsimIDs := []uint{}
+	for ndevsim := range faf.ReadDir(filepath.Join(sysfsroot, "sys/bus/netdevsim/devices")) {
+		id, ok := faf.ParseUint(bytes.TrimPrefix(ndevsim.Name, []byte(netdevsimDevicePrefix)))
+		if !ok || id > math.MaxUint {
 			continue
 		}
-		ids[uint(id)] = struct{}{}
+		netdevsimIDs = append(netdevsimIDs, uint(id))
 	}
-	id := uint(0)
-	for {
-		if _, ok := ids[id]; !ok {
-			return id, nil
+	slices.Sort(netdevsimIDs)
+	var id uint
+	for _, ndevsimID := range netdevsimIDs {
+		if id < ndevsimID {
+			break
 		}
-		id++
+		if ndevsimID == id {
+			id++
+			continue
+		}
 	}
+	return id
 }
 
 // portNifnames returns a list of network interface names corresponding with the

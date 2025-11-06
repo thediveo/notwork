@@ -53,17 +53,7 @@ func LocateHWParent() netlink.Link {
 		parents = append(parents, link)
 	}
 	// Sort links in OperUp before OperUnknown.
-	slices.SortStableFunc(parents, func(la, lb netlink.Link) int {
-		operA := la.Attrs().OperState
-		operB := lb.Attrs().OperState
-		if operA == operB {
-			return 0
-		}
-		if operA == netlink.OperUnknown {
-			return 1
-		}
-		return -1
-	})
+	slices.SortStableFunc(parents, compareLinksByOperState)
 	if len(parents) == 0 {
 		Fail("could not find any hardware netdev in up/unknown state")
 	}
@@ -104,4 +94,16 @@ func NewTransient(parent netlink.Link, opts ...Opt) netlink.Link {
 func CreateTransient(parent netlink.Link) netlink.Link {
 	GinkgoHelper()
 	return NewTransient(parent)
+}
+
+func compareLinksByOperState(la, lb netlink.Link) int {
+	operA := la.Attrs().OperState
+	operB := lb.Attrs().OperState
+	if operA == operB {
+		return 0
+	}
+	if operA == netlink.OperUnknown {
+		return 1
+	}
+	return -1
 }

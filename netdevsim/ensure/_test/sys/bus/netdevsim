@@ -1,0 +1,2 @@
+Note that this isn't fine: we should be a directory, not a file; and never an
+ordinary one at that!
