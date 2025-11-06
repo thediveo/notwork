@@ -22,8 +22,8 @@ import (
 	vishnetns "github.com/vishvananda/netns"
 	"golang.org/x/sys/unix"
 
-	. "github.com/onsi/ginkgo/v2" //lint:ignore ST1001 rule does not apply
-	. "github.com/onsi/gomega"    //lint:ignore ST1001 rule does not apply
+	. "github.com/onsi/ginkgo/v2" //nolint:staticcheck // ST1001 rule does not apply
+	. "github.com/onsi/gomega"    //nolint:staticcheck // ST1001 rule does not apply
 )
 
 // Link to netdevsim “port” interfaces with each other. Please note that the
@@ -42,10 +42,10 @@ func Link(dupond, dupont netlink.Link) {
 
 	netnsfd1, ifindex1, err := linkFds(dupond)
 	Expect(err).NotTo(HaveOccurred(), "invalid dupond/first link information")
-	defer unix.Close(netnsfd1)
+	defer func() { _ = unix.Close(netnsfd1) }()
 	netnsfd2, ifindex2, err := linkFds(dupont)
 	Expect(err).NotTo(HaveOccurred(), "invalid dupont/second link information")
-	defer unix.Close(netnsfd2)
+	defer func() { _ = unix.Close(netnsfd2) }()
 
 	Expect(os.WriteFile(netdevsimRoot+"/link_device",
 		[]byte(fmt.Sprintf("%d:%d %d:%d",
@@ -66,7 +66,7 @@ func Unlink(l netlink.Link) {
 
 	netnsfd, ifindex, err := linkFds(l)
 	Expect(err).NotTo(HaveOccurred(), "invalid link information")
-	defer unix.Close(netnsfd)
+	defer func() { _ = unix.Close(netnsfd) }()
 	Expect(os.WriteFile(netdevsimRoot+"/unlink_device",
 		[]byte(fmt.Sprintf("%d:%d", netnsfd, ifindex)), 0)).To(Succeed())
 }
@@ -90,13 +90,13 @@ func linkFds(l netlink.Link) (netnsfd int, ifindex int, err error) {
 			// network namespace...
 			nlh, err := netlink.NewHandleAt(vishnetns.NsHandle(netnsfd))
 			if err != nil {
-				unix.Close(netnsfd)
+				_ = unix.Close(netnsfd)
 				return 0, 0, fmt.Errorf("invalid network namespace fd reference, reason: %w", err)
 			}
 			defer nlh.Close()
 			l, err := nlh.LinkByName(l.Attrs().Name)
 			if err != nil {
-				unix.Close(netnsfd)
+				_ = unix.Close(netnsfd)
 				return 0, 0, fmt.Errorf("cannot determine link index, reason: %w", err)
 			}
 			ifindex = l.Attrs().Index

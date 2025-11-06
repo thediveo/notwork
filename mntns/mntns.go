@@ -20,8 +20,8 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	. "github.com/onsi/ginkgo/v2" //lint:ignore ST1001 rule does not apply
-	. "github.com/onsi/gomega"    //lint:ignore ST1001 rule does not apply
+	. "github.com/onsi/ginkgo/v2" //nolint:staticcheck // ST1001 rule does not apply
+	. "github.com/onsi/gomega"    //nolint:staticcheck // ST1001 rule does not apply
 )
 
 // Avoid problems that would happen when we accidentally unshare the initial
@@ -78,7 +78,7 @@ func EnterTransient() func() {
 		if err := unix.Setns(mntnsfd, 0); err != nil {
 			panic(fmt.Sprintf("cannot restore original mount namespace, reason: %s", err.Error()))
 		}
-		unix.Close(mntnsfd)
+		_ = unix.Close(mntnsfd)
 		// do NOT unlock the OS-level thread, as we cannot undo unsharing CLONE_FS
 	}
 }
@@ -199,7 +199,7 @@ func execute(g Gomega, mntnsfd int, fn func()) {
 			callersNetnsFd, err := unix.Open(callersNetnsRef, unix.O_RDONLY, 0)
 			Expect(err).NotTo(HaveOccurred(), "cannot determine caller's current network namespace")
 			err = unix.Setns(callersNetnsFd, unix.CLONE_NEWNET)
-			unix.Close(callersNetnsFd)
+			_ = unix.Close(callersNetnsFd)
 			Expect(err).NotTo(HaveOccurred(), "cannot switch into caller's current network namespace")
 		}
 

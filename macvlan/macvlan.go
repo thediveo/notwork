@@ -20,8 +20,8 @@ import (
 	"github.com/thediveo/notwork/link"
 	"github.com/vishvananda/netlink"
 
-	. "github.com/onsi/ginkgo/v2" //lint:ignore ST1001 rule does not apply
-	. "github.com/onsi/gomega"    //lint:ignore ST1001 rule does not apply
+	. "github.com/onsi/ginkgo/v2" //nolint:staticcheck // ST1001 rule does not apply
+	. "github.com/onsi/gomega"    //nolint:staticcheck // ST1001 rule does not apply
 )
 
 // MacvlanPrefix is the name prefix used for transient MACVLAN network

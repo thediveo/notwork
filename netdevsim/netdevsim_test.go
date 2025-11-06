@@ -72,7 +72,7 @@ var _ = Describe("netdevsim network interfaces", Ordered, func() {
 			It("returns an empty list for a non-existing netdevsim device", func() {
 				defer netns.EnterTransient()()
 				cl := Successful(devlink.New())
-				defer cl.Close()
+				defer func() { _ = cl.Close() }()
 				Expect(portNifnames(cl, 666)).To(BeEmpty())
 			})
 

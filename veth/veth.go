@@ -19,9 +19,9 @@ import (
 	"github.com/vishvananda/netlink"
 	vishnetns "github.com/vishvananda/netns"
 
-	. "github.com/onsi/ginkgo/v2"   //lint:ignore ST1001 rule does not apply
-	. "github.com/onsi/gomega"      //lint:ignore ST1001 rule does not apply
-	. "github.com/thediveo/success" //lint:ignore ST1001 rule does not apply
+	. "github.com/onsi/ginkgo/v2"   //nolint:staticcheck // ST1001 rule does not apply
+	. "github.com/onsi/gomega"      //nolint:staticcheck // ST1001 rule does not apply
+	. "github.com/thediveo/success" //nolint:staticcheck // ST1001 rule does not apply
 )
 
 // VethPrefix is the name prefix used for transient VETH network interfaces.
