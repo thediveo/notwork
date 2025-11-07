@@ -27,8 +27,8 @@ import (
 	"github.com/vishvananda/netns"
 	"golang.org/x/sys/unix"
 
-	. "github.com/onsi/ginkgo/v2" //lint:ignore ST1001 rule does not apply
-	. "github.com/onsi/gomega"    //lint:ignore ST1001 rule does not apply
+	. "github.com/onsi/ginkgo/v2" //nolint:staticcheck // ST1001 rule does not apply
+	. "github.com/onsi/gomega"    //nolint:staticcheck // ST1001 rule does not apply
 )
 
 var fail = Fail // allow testing Fails without terminally failing the current test.
@@ -145,7 +145,7 @@ func NewTransient(link netlink.Link, prefix string, opts ...Opt) netlink.Link {
 		// netns.Current arranges for a DeferCleanup that we don't want to be
 		// done yet.
 		netnsfd, err := unix.Open("/proc/thread-self/ns/net", unix.O_RDONLY, 0)
-		defer unix.Close(netnsfd)
+		defer func() { _ = unix.Close(netnsfd) }()
 		Expect(err).NotTo(HaveOccurred(), "cannot determine current network namespace from procfs")
 		netnsh, err = netlink.NewHandleAt(netns.NsHandle(netnsfd))
 		Expect(err).NotTo(HaveOccurred(), "cannot create NETLINK handle for network namespace")

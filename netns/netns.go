@@ -22,8 +22,8 @@ import (
 	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
 
-	. "github.com/onsi/ginkgo/v2" //lint:ignore ST1001 rule does not apply
-	. "github.com/onsi/gomega"    //lint:ignore ST1001 rule does not apply
+	. "github.com/onsi/ginkgo/v2" //nolint:staticcheck // ST1001 rule does not apply
+	. "github.com/onsi/gomega"    //nolint:staticcheck // ST1001 rule does not apply
 )
 
 // EnterTransient creates and enters a new (and isolated) network namespace,
@@ -46,7 +46,7 @@ func EnterTransient() func() {
 		if err := unix.Setns(netnsfd, 0); err != nil {
 			panic(fmt.Sprintf("cannot restore original network namespace, reason: %s", err.Error()))
 		}
-		unix.Close(netnsfd)
+		_ = unix.Close(netnsfd)
 		runtime.UnlockOSThread()
 	}
 }
@@ -63,14 +63,12 @@ func NewTransient() int {
 	// no deferred unlock, as we need to throw away the OS-level thread if
 	// things go south.
 	orignetnsfd := current()
-	defer unix.Close(orignetnsfd)
+	defer func() { _ = unix.Close(orignetnsfd) }()
 	Expect(unix.Unshare(unix.CLONE_NEWNET)).To(Succeed(), "cannot create new network namespace")
 	netnsfd, err := unix.Open("/proc/thread-self/ns/net", unix.O_RDONLY, 0)
 	Expect(err).NotTo(HaveOccurred(), "cannot determine new network namespace from procfs")
 	Expect(unix.Setns(orignetnsfd, unix.CLONE_NEWNET)).To(Succeed(), "cannot switch back into original network namespace")
-	DeferCleanup(func() {
-		unix.Close(netnsfd)
-	})
+	DeferCleanup(func() { _ = unix.Close(netnsfd) })
 	runtime.UnlockOSThread()
 	return netnsfd
 }
@@ -87,7 +85,7 @@ func execute(g Gomega, netnsfd int, fn func()) {
 	// no deferred unlock, as we need to throw away the OS-level thread if
 	// things go south. Nota bene: Ginkgo runs its tests on fresh go routines.
 	orignetnsfd := current()
-	defer unix.Close(orignetnsfd)
+	defer func() { _ = unix.Close(orignetnsfd) }()
 	g.Expect(unix.Setns(netnsfd, unix.CLONE_NEWNET)).To(Succeed(), "cannot switch into network namespace")
 	defer func() {
 		g.Expect(unix.Setns(orignetnsfd, unix.CLONE_NEWNET)).To(Succeed(), "cannot switch back into original network namespace")
@@ -169,7 +167,7 @@ func NsID[R ~int | ~string](netns R) int {
 		var err error
 		netnsfd, err = unix.Open(ref, unix.O_RDONLY, 0)
 		Expect(err).NotTo(HaveOccurred(), "cannot open network namespace reference %v", ref)
-		defer unix.Close(netnsfd)
+		defer func() { _ = unix.Close(netnsfd) }()
 	}
 	netnsid, err := netlink.GetNetNsIdByFd(netnsfd)
 	Expect(err).NotTo(HaveOccurred(), "cannot retrieve netnsid")

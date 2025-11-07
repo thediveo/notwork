@@ -31,13 +31,13 @@ import (
 	"github.com/thediveo/notwork/netns"
 	"github.com/vishvananda/netlink"
 
-	. "github.com/onsi/ginkgo/v2"   //lint:ignore ST1001 rule does not apply
-	. "github.com/onsi/gomega"      //lint:ignore ST1001 rule does not apply
-	. "github.com/thediveo/success" //lint:ignore ST1001 rule does not apply
+	. "github.com/onsi/ginkgo/v2"   //nolint:staticcheck // ST1001 rule does not apply
+	. "github.com/onsi/gomega"      //nolint:staticcheck // ST1001 rule does not apply
+	. "github.com/thediveo/success" //nolint:staticcheck // ST1001 rule does not apply
 )
 
-// MacvlanPrefix is the name prefix used for transient port network interfaces
-// of a transient netdevsim device.
+// NetdevsimPrefix is the name prefix used for the transient port network
+// interfaces of transient netdevsim devices.
 const NetdevsimPrefix = "ndsi-"
 
 var (
@@ -117,7 +117,7 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 	// device information, such as the mapping of ports to network interface
 	// names.
 	devlink := Successful(devlink.New())
-	defer devlink.Close()
+	defer func() { _ = devlink.Close() }()
 
 	// Ensure to remove the netdevsim device in case we created one successfully
 	// and then failed further down the road, such as when listing and renaming

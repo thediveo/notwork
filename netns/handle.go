@@ -20,8 +20,8 @@ import (
 
 	"github.com/onsi/gomega/types"
 
-	. "github.com/onsi/ginkgo/v2" //lint:ignore ST1001 rule does not apply
-	. "github.com/onsi/gomega"    //lint:ignore ST1001 rule does not apply
+	. "github.com/onsi/ginkgo/v2" //nolint:staticcheck // ST1001 rule does not apply
+	. "github.com/onsi/gomega"    //nolint:staticcheck // ST1001 rule does not apply
 )
 
 // NewNetlinkHandle returns a *netlink.Handle that is connected to the specified
