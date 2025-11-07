@@ -18,13 +18,15 @@ jobs:
 
     steps:
       - name: Set up Go ${{matrix.go}}
-        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # pin@v5
+        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6
         with:
           go-version: ${{matrix.go}}
         id: go
 
       - name: Check out code into the Go module directory
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
 
       - name: Test Go packages
-        run: go test -v -p 1 -race -exec "sudo --preserve-env=GITHUB_ACTIONS" ./... && go test -v -p 1 -race ./...
+        run: >
+          go test -v -p 1 -race -exec "sudo --preserve-env=GITHUB_ACTIONS" ./...
+          && go test -v -p 1 -race ./...
