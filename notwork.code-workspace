@@ -3,5 +3,17 @@
 		{
 			"path": "."
 		}
-	]
+	],
+	"settings": {
+		"go.vetOnSave": "workspace",
+		"gopls": {
+			// https://github.com/golang/vscode-go/blob/master/docs/settings.md#uidiagnosticanalyses
+			"ui.diagnostic.analyses": {
+			},
+			// https://github.com/golang/vscode-go/blob/master/docs/settings.md#uicodelenses
+			"ui.codelenses": {
+				"vulncheck": true,
+			}
+		}
+	}
 }
