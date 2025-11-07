@@ -1,0 +1,63 @@
+{
+    "name": "notwork (reduced privileges)",
+    "portsAttributes": {
+        "6060": {
+            "label": "notwork Go package documentation",
+            "onAutoForward": "silent",
+            "protocol": "http"
+        }
+    },
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+    "features": {
+        "ghcr.io/thediveo/devcontainer-features/local-pkgsite:0": {},
+        "ghcr.io/thediveo/devcontainer-features/goreportcard:0": {},
+        "ghcr.io/thediveo/devcontainer-features/go-mod-upgrade:0": {},
+        "ghcr.io/thediveo/devcontainer-features/gocover:0": {
+            "root": true,           // test both as ordinary user and root
+            "num-programs": "1",    // do never run package-level tests in parallel
+            "race": true,           // enable race detector
+            "verbose": true,
+            "html": true            // generate coverage.html
+        },
+        "ghcr.io/thediveo/devcontainer-features/pin-github-action:0": {}
+    },
+    "securityOpt": [ 
+        "apparmor=unconfined"       // interferes in to many places
+    ],
+    "capAdd": [
+        "NET_ADMIN",    // creating and managing netdevs
+        "SYS_ADMIN",    // switching namespaces, ...
+        "SYS_CHROOT",   // switching mount namespaces
+        "SYS_MODULE",   // loading/unloading the netdevsim module
+        "SYS_PTRACE",   // debugging
+        "CAP_SYS_RAWIO" // necessary for certain netdevsim device operations
+    ],
+    "mounts": [
+        // we need write access to /sys/bus/netdevsim, yet it might not be
+        // present when the devcontainer starts, so we can't bindmount the
+        // netdevsim bus only, but all busses.
+        "type=bind,source=/sys/bus,target=/sys/bus",
+        // in order to configure certain per-netsimdev device properties, we
+        // additionally need write access to /sys/devices where the individual
+        // netdevsim devices are located.
+        "type=bind,source=/sys/devices,target=/sys/devices",
+        // the netdevsim module, when available, usually is not loaded at system
+        // start, so want to automatically load it during tests that are either
+        // about netdevsim or make use of netdevsim.
+        "type=bind,source=/lib/modules,target=/lib/modules,ro"
+    ],
+    "remoteEnv": {
+        "GOPATH": "/home/vscode/go",
+        "PATH": "/home/vscode/go/bin:/go/bin:/usr/local/go/bin:${localEnv:PATH}"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "stkb.rewrap",
+                "brunnerh.insert-unicode",
+                "mhutchie.git-graph",
+                "ms-vscode.live-server"
+            ]
+        }
+    }
+}
