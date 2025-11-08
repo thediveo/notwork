@@ -23,7 +23,7 @@ import (
 
 	"pault.ag/go/modprobe"
 
-	. "github.com/onsi/gomega"
+	gom "github.com/onsi/gomega"
 )
 
 // Netdevsim checks first that the caller is root and then that netdevsim is
@@ -37,6 +37,10 @@ func Netdevsim() bool { return NetdevsimRoot("/") }
 // NetdevsimRoot is like [Netdevsim], but expects “sys/bus/netdevsim” to be rooted
 // at the specified sysfsroot, instead of the default “/”.
 func NetdevsimRoot(sysfsroot string) bool {
+	return netdevsimRoot(gom.Default, sysfsroot)
+}
+
+func netdevsimRoot(g gom.Gomega, sysfsroot string) bool {
 	// managing netdevsim devices requires root, because creating and
 	// linking/unlinking netdevsim devices goes through the DAC of the
 	// filesystem inside /sys/bus/netdevsim. Thus, if we're not root, even with
@@ -60,9 +64,9 @@ func NetdevsimRoot(sysfsroot string) bool {
 	// wait for the netdevsim bus to become available; if we time out then this
 	// is a test fail because there's something wrong. Don't keep shtumm in this
 	// case.
-	Eventually(
+	g.Eventually(
 		func() string { return filepath.Join(sysfsroot, "sys/bus/netdevsim/new_device") }).
 		Within(5*time.Second).ProbeEvery(10*time.Millisecond).
-		To(BeARegularFile(), "netdevsim module not correctly loaded")
+		To(gom.BeARegularFile(), "netdevsim module not correctly loaded")
 	return true
 }

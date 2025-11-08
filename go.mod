@@ -6,6 +6,7 @@ require (
 	github.com/hofstadter-io/cinful v1.0.0
 	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
+	github.com/quasilyte/go-ruleguard/dsl v0.3.23
 	github.com/thediveo/faf v0.2.1
 	github.com/vishvananda/netlink v1.3.1
 	pault.ag/go/modprobe v0.2.0

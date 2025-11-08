@@ -9,6 +9,7 @@
 		"gopls": {
 			// https://github.com/golang/vscode-go/blob/master/docs/settings.md#uidiagnosticanalyses
 			"ui.diagnostic.analyses": {
+				"unusedfunc": false
 			},
 			// https://github.com/golang/vscode-go/blob/master/docs/settings.md#uicodelenses
 			"ui.codelenses": {
