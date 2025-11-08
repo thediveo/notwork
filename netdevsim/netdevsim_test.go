@@ -81,7 +81,7 @@ var _ = Describe("netdevsim network interfaces", Ordered, func() {
 
 				id := lowestUnusedID("/")
 				Expect(os.WriteFile(netdevsimRoot+"/new_device",
-					[]byte(fmt.Sprintf("%d 2 1", id)), 0)).To(Succeed())
+					fmt.Appendf(nil, "%d 2 1", id), 0)).To(Succeed())
 				defer func() {
 					Expect(os.WriteFile(netdevsimRoot+"/del_device",
 						[]byte(fmt.Sprintf("%d", id)), 0)).To(Succeed())

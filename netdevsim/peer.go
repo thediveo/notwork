@@ -68,7 +68,7 @@ func Unlink(l netlink.Link) {
 	Expect(err).NotTo(HaveOccurred(), "invalid link information")
 	defer func() { _ = unix.Close(netnsfd) }()
 	Expect(os.WriteFile(netdevsimRoot+"/unlink_device",
-		[]byte(fmt.Sprintf("%d:%d", netnsfd, ifindex)), 0)).To(Succeed())
+		fmt.Appendf(nil, "%d:%d", netnsfd, ifindex), 0)).To(Succeed())
 }
 
 // linkFds returns a netns fd as well as the ifindex of the link in question,
