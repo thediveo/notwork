@@ -204,7 +204,7 @@ func execute(g Gomega, mntnsfd int, fn func()) {
 		}
 
 		g.Expect(unix.Unshare(unix.CLONE_FS)).To(Succeed(), "cannot unshare file attributes of transient execution thread")
-		g.Expect(unix.Setns(mntnsfd, unix.CLONE_NEWNS), "cannot switch into mount namespace")
+		g.Expect(unix.Setns(mntnsfd, unix.CLONE_NEWNS)).To(Succeed(), "cannot switch into mount namespace")
 		fn()
 	}()
 

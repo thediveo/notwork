@@ -174,7 +174,7 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 		// Get the names of the port network interfaces and then rename them using random names.
 		nifnames := Successful(portNifnames(devlink, id))
 		links := make([]netlink.Link, 0, len(nifnames))
-		var netns interface{}
+		var netns any
 		if options.NetnsFd >= 0 {
 			netns = netlink.NsFd(options.NetnsFd)
 		}

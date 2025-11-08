@@ -29,11 +29,11 @@ import (
 	. "github.com/thediveo/success"
 )
 
-var canaryErr = errors.New("cheep cheep")
+var errCanary = errors.New("cheep cheep")
 
 func withFailingOpt() Opt {
 	return func(l *link.Link) error {
-		return canaryErr
+		return errCanary
 	}
 }
 
@@ -55,7 +55,7 @@ var _ = Describe("creating transient dummy network interfaces", func() {
 
 	It("throws a tantrum when an option fails", func() {
 		Expect(InterceptGomegaFailure(func() { _ = NewTransient(withFailingOpt()) })).
-			To(MatchError(ContainSubstring(canaryErr.Error())))
+			To(MatchError(ContainSubstring(errCanary.Error())))
 	})
 
 	It("creates a transient dummy network interface and brings it up", func() {
@@ -66,7 +66,7 @@ var _ = Describe("creating transient dummy network interfaces", func() {
 		))
 		// Check that the network interface was in fact created.
 		ql := Successful(netlink.LinkByIndex(dl.Attrs().Index))
-		Expect(ql.Attrs().OperState).NotTo(Equal(netlink.OperDown))
+		Expect(ql.Attrs().OperState).NotTo(BeEquivalentTo(netlink.OperDown))
 	})
 
 	When("using options", func() {

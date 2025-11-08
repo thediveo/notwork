@@ -48,9 +48,9 @@ func Link(dupond, dupont netlink.Link) {
 	defer func() { _ = unix.Close(netnsfd2) }()
 
 	Expect(os.WriteFile(netdevsimRoot+"/link_device",
-		[]byte(fmt.Sprintf("%d:%d %d:%d",
+		fmt.Appendf(nil, "%d:%d %d:%d",
 			netnsfd1, ifindex1,
-			netnsfd2, ifindex2)), 0)).To(Succeed(),
+			netnsfd2, ifindex2), 0)).To(Succeed(),
 		"cannot link two netdevsims '%s' (netns(%d):%d) and '%s' (netns(%d):%d)",
 		dupond.Attrs().Name, netnsfd1, ifindex1,
 		dupont.Attrs().Name, netnsfd2, ifindex2)
