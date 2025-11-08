@@ -1,11 +1,12 @@
 package notwork
 
 import (
-	"github.com/thediveo/notwork/mntns"
-	"github.com/thediveo/notwork/netns"
+	bar "github.com/thediveo/notwork/mntns"
+	foo "github.com/thediveo/notwork/netns"
 )
 
-func foo() {
-	defer netns.EnterTransient()
-	defer mntns.EnterTransient()
+func test() {
+	defer foo.EnterTransient()()
+	defer foo.EnterTransient()
+	defer bar.EnterTransient()
 }
