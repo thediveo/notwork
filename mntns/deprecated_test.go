@@ -19,7 +19,9 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/thediveo/spacetest"
 	"github.com/thediveo/spacetest/netns"
+	"golang.org/x/sys/unix"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -41,6 +43,11 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 				ShouldNot(HaveLeaked(goodgos))
 			Expect(Filedescriptors()).NotTo(HaveLeakedFds(goodfds))
 		})
+	})
+
+	It("returns the current mount namespace", func() {
+		mntns := Current()
+		Expect(Ino(mntns)).To(Equal(spacetest.CurrentIno(unix.CLONE_NEWNS)))
 	})
 
 	It("returns the correct Ino", func() {

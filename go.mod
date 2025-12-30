@@ -34,11 +34,11 @@ require (
 	github.com/jinzhu/copier v0.4.0
 	github.com/mdlayher/devlink v0.0.0-20191111174559-94b7996630ec
 	github.com/thediveo/fdooze v0.3.2
-	github.com/thediveo/spacetest v0.5.0
+	github.com/thediveo/spacetest v0.6.0
 	github.com/thediveo/success v1.0.3
 	github.com/vishvananda/netns v0.0.5
 	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/sys v0.37.0
+	golang.org/x/sys v0.39.0
 	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/tools v0.36.0 // indirect
 )
