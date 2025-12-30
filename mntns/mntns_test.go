@@ -19,7 +19,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/thediveo/notwork/netns"
+	"github.com/thediveo/spacetest/netns"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -52,15 +52,9 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 	})
 
 	It("rejects mounting sysfs in the original mount namespace", func() {
-		var r any
-		func() {
-			defer func() { r = recover() }()
-			g := NewGomega(func(message string, callerSkip ...int) {
-				panic(message)
-			})
-			mountSysfs(g, 0, "")
-		}()
-		Expect(r).To(ContainSubstring("current mount namespace must not be the process's original mount namespace"))
+		Expect(InterceptGomegaFailure(func() {
+			MountSysfsRO()
+		})).To(MatchError(ContainSubstring("current mount namespace must not be the process's original mount namespace")))
 	})
 
 	It("mounts a fresh sysfs (RO) in a transient mount namespace", func() {
