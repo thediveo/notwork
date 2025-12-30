@@ -5,7 +5,7 @@
 		}
 	],
 	"settings": {
-		terminal.integrated.scrollback": 10000,
+		"terminal.integrated.scrollback": 10000,
 		"go.lintTool": "golangci-lint-v2",
 		"go.vetOnSave": "workspace",
 		"gopls": {

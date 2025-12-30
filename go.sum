@@ -4,7 +4,6 @@ github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ3
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
-github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
 github.com/frankban/quicktest v1.14.6/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7zb5vbUoiM6w0=
 github.com/gkampitakis/ciinfo v0.3.2 h1:JcuOPk8ZU7nZQjdUhctuhQofk7BGHuIy0c9Ez8BNhXs=
 github.com/gkampitakis/ciinfo v0.3.2/go.mod h1:1NIwaOcFChN4fa/B0hEBdAb6npDlFL8Bwx4dfRLRqAo=
@@ -67,12 +66,12 @@ github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcU
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 github.com/thediveo/caps v0.10.2 h1:x9Jj6Gcz2/42J+97UpYdjMnH0KvmWELCYPbotw6A6ps=
 github.com/thediveo/caps v0.10.2/go.mod h1:5gN96Ik1gQArW4h6gs99Lk0thJ9MkQZS61Tao5Oy4yw=
+github.com/thediveo/faf v0.2.1 h1:3wTb6H8cTHMha8T9o28dW5ILArOw054k3fkeEeLnL3U=
+github.com/thediveo/faf v0.2.1/go.mod h1:Hxn++Q5aiiJfIuv+rq1MT/kOdsuwtqkHvwFHSBtGlj4=
 github.com/thediveo/fdooze v0.3.2 h1:tBaK/7U1G8wTNwdIe0qH+V7HUJHRsTBtCKnxwH+rF1E=
 github.com/thediveo/fdooze v0.3.2/go.mod h1:Ny0KY0ig+XGYeHdIHz3JelZCtJlnA5fAyOuhiZH1hzY=
 github.com/thediveo/ioctl v0.9.4 h1:HvEW9BW0qkyDXaGqp24Vb4sFrfN5718WLx6VLV2uTxU=
 github.com/thediveo/ioctl v0.9.4/go.mod h1:2k2Us0WLUrBRJWmNo5b0JCg1HicqxxoxB8wKml+e0Eo=
-github.com/thediveo/spacetest v0.5.1 h1:l3PwNADdzWMliZ/nOoNO6EkU+cy0BW1x4Olgqj8rEAw=
-github.com/thediveo/spacetest v0.5.1/go.mod h1:OOlF9gWkvxav3n1X+qd05qk5ZOMp0NfsL0TtoTryfTM=
 github.com/thediveo/spacetest v0.6.0 h1:LBa5D63Qmmj/s/h355QipQ98so6UQ2aFO0bDNxyXBgE=
 github.com/thediveo/spacetest v0.6.0/go.mod h1:Tzy9KbROOxvtFspOl3T7QYhXtHxtlVWfxX/FiuD6eqo=
 github.com/thediveo/success v1.0.3 h1:jaBpZ5ETfmCo9U3CRDtWPhtXQg3iW3beZH4ioLMR5RQ=
