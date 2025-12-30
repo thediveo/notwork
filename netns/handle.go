@@ -18,8 +18,6 @@ import (
 	"github.com/vishvananda/netlink"
 	vishnetns "github.com/vishvananda/netns"
 
-	"github.com/onsi/gomega/types"
-
 	. "github.com/onsi/ginkgo/v2" //nolint:staticcheck // ST1001 rule does not apply
 	. "github.com/onsi/gomega"    //nolint:staticcheck // ST1001 rule does not apply
 )
@@ -29,7 +27,7 @@ import (
 // be obtained from especially [netns.NewTransient] or [netns.Current].
 //
 //	 import (
-//	     "github.com/notwork/netns"
+//	     "github.com/thediveo/notwork/netns"
 //	 )
 //
 //	 It("lists links in a transient network namespace", func() {
@@ -44,14 +42,10 @@ import (
 // test node terminates (for whichever reason).
 func NewNetlinkHandle(netnsfd int) *netlink.Handle {
 	GinkgoHelper()
-	return newNetlinkHandle(Default, netnsfd)
-}
-
-func newNetlinkHandle(g types.Gomega, netnsfd int) *netlink.Handle {
-	GinkgoHelper()
 
 	h, err := netlink.NewHandleAt(vishnetns.NsHandle(netnsfd))
-	g.Expect(err).NotTo(HaveOccurred(), "cannot create netlink handle for network namespace")
+	Expect(err).NotTo(HaveOccurred(),
+		"cannot create netlink handle for network namespace")
 	DeferCleanup(func() {
 		h.Close()
 	})
