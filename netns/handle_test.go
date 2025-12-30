@@ -47,15 +47,10 @@ var _ = Describe("netlink handles", func() {
 	})
 
 	It("fails with invalid network namespace fd", func() {
-		var r any
-		func() {
-			defer func() { r = recover() }()
-			g := NewGomega(func(message string, callerSkip ...int) {
-				panic(message)
-			})
-			_ = newNetlinkHandle(g, 0)
-		}()
-		Expect(r).To(ContainSubstring("failed to set into network namespace 0 while creating netlink socket: invalid argument"))
+		Expect(InterceptGomegaFailure(func() {
+			_ = NewNetlinkHandle(0)
+		})).To(MatchError(ContainSubstring(
+			"failed to set into network namespace 0 while creating netlink socket: invalid argument")))
 	})
 
 	It("correctly connects to a transient network namespace", func() {

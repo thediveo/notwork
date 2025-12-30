@@ -48,9 +48,9 @@ func Link(dupond, dupont netlink.Link) {
 	defer func() { _ = unix.Close(netnsfd2) }()
 
 	Expect(os.WriteFile(netdevsimRoot+"/link_device",
-		[]byte(fmt.Sprintf("%d:%d %d:%d",
+		fmt.Appendf(nil, "%d:%d %d:%d",
 			netnsfd1, ifindex1,
-			netnsfd2, ifindex2)), 0)).To(Succeed(),
+			netnsfd2, ifindex2), 0)).To(Succeed(),
 		"cannot link two netdevsims '%s' (netns(%d):%d) and '%s' (netns(%d):%d)",
 		dupond.Attrs().Name, netnsfd1, ifindex1,
 		dupont.Attrs().Name, netnsfd2, ifindex2)
@@ -68,7 +68,7 @@ func Unlink(l netlink.Link) {
 	Expect(err).NotTo(HaveOccurred(), "invalid link information")
 	defer func() { _ = unix.Close(netnsfd) }()
 	Expect(os.WriteFile(netdevsimRoot+"/unlink_device",
-		[]byte(fmt.Sprintf("%d:%d", netnsfd, ifindex)), 0)).To(Succeed())
+		fmt.Appendf(nil, "%d:%d", netnsfd, ifindex), 0)).To(Succeed())
 }
 
 // linkFds returns a netns fd as well as the ifindex of the link in question,

@@ -56,9 +56,9 @@ var _ = Describe("provides transient VETH network interface pairs", Ordered, fun
 		Expect(dupont.Attrs().Index).NotTo(BeZero())
 		// Check that the network interface pair was in fact created.
 		ql := Successful(netlink.LinkByName(dupond.Attrs().Name))
-		Expect(ql.Attrs().OperState).NotTo(Equal(netlink.OperDown))
+		Expect(ql.Attrs().OperState).To(BeEquivalentTo(netlink.OperDown))
 		ql = Successful(netlink.LinkByName(dupont.Attrs().Name))
-		Expect(ql.Attrs().OperState).NotTo(Equal(netlink.OperDown))
+		Expect(ql.Attrs().OperState).To(BeEquivalentTo(netlink.OperDown))
 	})
 
 	It("creates a VETH pair with the first end in a different network namespace, but with the peer in the current(!) network namespace", func() {

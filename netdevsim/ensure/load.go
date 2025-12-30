@@ -19,8 +19,11 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"time"
 
 	"pault.ag/go/modprobe"
+
+	. "github.com/onsi/gomega"
 )
 
 // Netdevsim checks first that the caller is root and then that netdevsim is
@@ -51,5 +54,15 @@ func NetdevsimRoot(sysfsroot string) bool {
 		return false // no chance, something broken here.
 	}
 	// try to modprobe
-	return modprobe.Load("netdevsim", "") == nil
+	if modprobe.Load("netdevsim", "") != nil {
+		return false
+	}
+	// wait for the netdevsim bus to become available; if we time out then this
+	// is a test fail because there's something wrong. Don't keep shtumm in this
+	// case.
+	Eventually(
+		func() string { return filepath.Join(sysfsroot, "sys/bus/netdevsim/new_device") }).
+		Within(5*time.Second).ProbeEvery(10*time.Millisecond).
+		To(BeARegularFile(), "netdevsim module not correctly loaded")
+	return true
 }

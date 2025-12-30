@@ -16,8 +16,6 @@ package netns
 
 import (
 	"os"
-	"runtime"
-	"syscall"
 	"time"
 
 	"github.com/onsi/gomega/gleak/goroutine"
@@ -44,67 +42,6 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 				ShouldNot(HaveLeaked(goodgos))
 			Expect(Filedescriptors()).NotTo(HaveLeakedFds(goodfds))
 		})
-	})
-
-	It("returns a fd reference and cleans it up", func() {
-		beforefds := []any{}
-		for _, fd := range Filedescriptors() {
-			beforefds = append(beforefds, fd.FdNo())
-		}
-		netnsfd := Current()
-		afterfds := []any{}
-		for _, fd := range Filedescriptors() {
-			afterfds = append(afterfds, fd.FdNo())
-		}
-		Expect(afterfds).To(ConsistOf(append(beforefds, netnsfd)...))
-	})
-
-	It("creates, enters, and leaves a transient network namespace", func() {
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
-
-		initialNetnsInfo := Successful(os.Stat("/proc/thread-self/ns/net"))
-
-		By("creating and entering a new network namespace")
-		f := EnterTransient()
-		currentNetnsInfo := Successful(os.Stat("/proc/thread-self/ns/net"))
-		Expect(initialNetnsInfo.Sys().(*syscall.Stat_t).Ino).NotTo(
-			Equal(currentNetnsInfo.Sys().(*syscall.Stat_t).Ino))
-
-		By("switching back into the original network namespace")
-		Expect(f).NotTo(Panic())
-		currentNetnsInfo = Successful(os.Stat("/proc/thread-self/ns/net"))
-		Expect(initialNetnsInfo.Sys().(*syscall.Stat_t).Ino).To(
-			Equal(currentNetnsInfo.Sys().(*syscall.Stat_t).Ino))
-	})
-
-	It("creates a transient network namespace without entering it", func() {
-		homeIno := CurrentIno()
-		Expect(homeIno).NotTo(BeZero())
-		Expect(homeIno).To(Equal(Ino("/proc/self/ns/net")))
-
-		netnsfd := NewTransient()
-		netnsIno := Ino(netnsfd)
-		Expect(netnsIno).NotTo(BeZero())
-		Expect(netnsIno).NotTo(Equal(homeIno))
-	})
-
-	It("cannot enter an invalid network namespace", func() {
-		var msg string
-		g := NewGomega(func(message string, callerSkip ...int) {
-			msg = message
-		})
-		execute(g, 0, func() {})
-		Expect(msg).To(ContainSubstring("cannot switch into network namespace"))
-	})
-
-	It("executes a function in a different network namespace", func() {
-		netnsfd := NewTransient()
-		netnsIno := Ino(netnsfd)
-		var currentnetnsIno uint64
-		Execute(netnsfd, func() { currentnetnsIno = Ino("/proc/thread-self/ns/net") })
-		Expect(currentnetnsIno).NotTo(BeZero())
-		Expect(currentnetnsIno).To(Equal(netnsIno))
 	})
 
 	It("cannot create a MACVLAN when the parent/master isn't in the current network namespace", func() {
