@@ -4,9 +4,9 @@ go 1.24.0
 
 require (
 	github.com/hofstadter-io/cinful v1.0.0
-	github.com/onsi/ginkgo/v2 v2.27.3
-	github.com/onsi/gomega v1.38.3
-	github.com/thediveo/faf v0.2.1
+	github.com/onsi/ginkgo/v2 v2.27.5
+	github.com/onsi/gomega v1.39.0
+	github.com/thediveo/faf v0.2.2
 	github.com/vishvananda/netlink v1.3.1
 	pault.ag/go/modprobe v0.2.0
 )
@@ -34,11 +34,11 @@ require (
 	github.com/jinzhu/copier v0.4.0
 	github.com/mdlayher/devlink v0.0.0-20191111174559-94b7996630ec
 	github.com/thediveo/fdooze v0.3.2
-	github.com/thediveo/spacetest v0.6.0
+	github.com/thediveo/spacetest v0.9.1
 	github.com/thediveo/success v1.0.3
 	github.com/vishvananda/netns v0.0.5
 	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/sys v0.39.0
+	golang.org/x/sys v0.40.0
 	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/tools v0.36.0 // indirect
 )

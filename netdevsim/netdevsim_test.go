@@ -48,8 +48,12 @@ var _ = Describe("netdevsim network interfaces", Ordered, func() {
 	Context("messing around", func() {
 
 		BeforeAll(func() {
-			if !ensure.Netdevsim() {
-				Skip("needs kernel module netdevsim")
+			// we skip if we're not root AND either:
+			//   - we NEITHER have an already statically activated netdevsim kernel module
+			//     NOR do we detect the dynamically loadable netdevsim kernel module binary;
+			//   - we cannot load the netdevsim kernel module.
+			if !ensure.NetdevsimAvailable() || !ensure.Netdevsim() {
+				Skip("no netdevsim available")
 			}
 		})
 
@@ -78,6 +82,7 @@ var _ = Describe("netdevsim network interfaces", Ordered, func() {
 
 			It("returns a list of network interface names for the ports of a netdevsim device", func() {
 				defer netns.EnterTransient()()
+				Expect(HasNetdevsim()).To(BeTrue())
 
 				id := lowestUnusedID("/")
 				Expect(os.WriteFile(netdevsimRoot+"/new_device",

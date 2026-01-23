@@ -22,7 +22,7 @@
         "ghcr.io/thediveo/devcontainer-features/pin-github-action:0": {}
     },
     "securityOpt": [ 
-        "apparmor=unconfined"       // interferes in to many places
+        "apparmor=unconfined"       // interferes in too many places
     ],
     "capAdd": [
         "NET_ADMIN",    // creating and managing netdevs

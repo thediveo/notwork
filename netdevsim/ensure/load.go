@@ -19,11 +19,12 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"pault.ag/go/modprobe"
 
-	. "github.com/onsi/gomega"
+	g "github.com/onsi/gomega"
 )
 
 // Netdevsim checks first that the caller is root and then that netdevsim is
@@ -60,9 +61,56 @@ func NetdevsimRoot(sysfsroot string) bool {
 	// wait for the netdevsim bus to become available; if we time out then this
 	// is a test fail because there's something wrong. Don't keep shtumm in this
 	// case.
-	Eventually(
+	g.Eventually(
 		func() string { return filepath.Join(sysfsroot, "sys/bus/netdevsim/new_device") }).
 		Within(5*time.Second).ProbeEvery(10*time.Millisecond).
-		To(BeARegularFile(), "netdevsim module not correctly loaded")
+		To(g.BeARegularFile(), "netdevsim module not correctly loaded")
 	return true
+}
+
+// NetdevsimAvailable returns true if (1) the caller is root, and (2) the
+// currently deployed kernel either has the netdevsim bus device already
+// activated, or else has the netdevsim kernel module available.
+func NetdevsimAvailable() bool { return netdevsimAvailable("/") }
+
+func netdevsimAvailable(procsysfsroot string) bool {
+	// early bird check: netdevsim already activated, such as because it is
+	// statically built in or someone loaded the module already?
+	info, err := os.Stat(filepath.Join(procsysfsroot, "sys/bus/netdevsim"))
+	if err == nil && info.Mode().IsDir() {
+		return true
+	}
+	// For reference, please see:
+	// https://www.man7.org/linux/man-pages/man5/proc_version.5.html,
+	// https://www.man7.org/linux/man-pages/man5/proc_sys_kernel.5.html
+	//
+	// The terminology "osrelease" seems odd at first until considering that
+	// Linux has some Unix genealogy (even if we still don't understand how
+	// penguins could have non-platonic relationships with suns or business
+	// machines): in those pre-penguin days, the OS was the kernel, and the
+	// kernel was the OS; and then someone took a break after a six day work
+	// week; and all fell apart.
+	kernelRelease, err := os.ReadFile(filepath.Join(procsysfsroot, "proc/sys/kernel/osrelease"))
+	if err != nil {
+		return false
+	}
+	ko := filepath.Join(procsysfsroot,
+		"lib/modules",
+		strings.TrimSuffix(string(kernelRelease), "\n"),
+		"kernel/drivers/net/netdevsim/netdevsim.ko")
+	matches, err := filepath.Glob(ko)
+	if err != nil {
+		return false
+	}
+	if len(matches) == 1 {
+		return true
+	}
+	matches, err = filepath.Glob(ko + ".*")
+	if err != nil {
+		return false
+	}
+	if len(matches) == 1 {
+		return true
+	}
+	return false
 }
