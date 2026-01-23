@@ -34,7 +34,7 @@ var _ = Describe("loading and unloading the netsimdev bus", Ordered, func() {
 			}
 		})
 
-		It("always returns false", func() {
+		It("always returns false when not root", func() {
 			Expect(NetdevsimRoot("/")).To(BeFalse())
 		})
 
@@ -52,7 +52,7 @@ var _ = Describe("loading and unloading the netsimdev bus", Ordered, func() {
 		})
 
 		It("always fails for a non-directory /sys/bus/netdevsim", func() {
-			Expect(NetdevsimRoot("./_test")).To(BeFalse())
+			Expect(NetdevsimRoot("./_test/invalidpresence")).To(BeFalse())
 		})
 
 		It("loads when needed", func() {
@@ -74,5 +74,17 @@ var _ = Describe("loading and unloading the netsimdev bus", Ordered, func() {
 		})
 
 	})
+
+	DescribeTable("detecting kernel module presence",
+		func(testcase string, expected bool) {
+			Expect(netdevsimAvailable("./_test/" + testcase)).To(Equal(expected))
+		},
+		Entry(nil, "presence", true),
+		Entry(nil, "kmodule", true),
+		Entry(nil, "kmodule.zst", true),
+
+		Entry(nil, "invalidpresence", false),
+		Entry(nil, "kboom", false),
+	)
 
 })
