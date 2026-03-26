@@ -1,4 +1,4 @@
-// Copyright 2024 Harald Albrecht.
+// Copyright 2023 Harald Albrecht.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package netns
+package nlhandle
 
 import (
 	"github.com/vishvananda/netlink"
@@ -22,25 +22,26 @@ import (
 	. "github.com/onsi/gomega"    //nolint:staticcheck // ST1001 rule does not apply
 )
 
-// NewNetlinkHandle returns a *netlink.Handle that is connected to the specified
-// network namespace (in form of a file descriptor). Such a file descriptor can
-// be obtained from especially [netns.NewTransient] or [netns.Current].
+// New returns a *netlink.Handle that is connected to the specified network
+// namespace (in form of a file descriptor). Such a file descriptor can be
+// obtained from especially [netns.NewTransient] or [netns.Current].
 //
-//	 import (
-//	     "github.com/thediveo/notwork/netns"
-//	 )
+//	import (
+//	    "github.com/thediveo/spacetest/netns"
+//	    "github.com/thediveo/notwork/nlhandle"
+//	)
 //
-//	 It("lists links in a transient network namespace", func() {
-//		netnsfd := netns.NewTransient() // ...no explicit close needed
-//		nlh := netns.NewNetlinkHandle(netnsfd) // ...also no explicit close needed
-//		links := Successful(nlh.LinkList())
-//		Expect(links).NotTo(BeEmpty())
-//	 })
+//	It("lists links in a transient network namespace", func() {
+//	   netnsfd := netns.NewTransient() // ...no explicit close needed
+//	   nlh := nlhandle.New(netnsfd) // ...also no explicit close needed
+//	   links := Successful(nlh.LinkList())
+//	   Expect(links).NotTo(BeEmpty())
+//	})
 //
 // The caller doesn't need to close the returned handle, as NewHandle
 // automatically schedules for the netlink.Handle to be closed when the calling
 // test node terminates (for whichever reason).
-func NewNetlinkHandle(netnsfd int) *netlink.Handle {
+func New(netnsfd int) *netlink.Handle {
 	GinkgoHelper()
 
 	h, err := netlink.NewHandleAt(vishnetns.NsHandle(netnsfd))

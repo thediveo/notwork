@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package netns
+package ns
 
 import (
 	"math/rand"
@@ -20,20 +20,22 @@ import (
 	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
 
-	. "github.com/onsi/ginkgo/v2" //lint:ignore ST1001 rule does not apply
-	. "github.com/onsi/gomega"    //lint:ignore ST1001 rule does not apply
+	gi "github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/gomega"
 )
 
-// NsID returns the so-called network namespace ID for the passed network
-// namespace, either referenced by a file descriptor or a VFS path name. The
-// nsid identifies the passed network namespace from the perspective of the
-// current network namespace.
+// ID returns the so-called network namespace ID, or “nsid” for short, for the
+// passed network namespace, either referenced by a file descriptor or a VFS
+// path name. The nsid identifies the passed network namespace from the
+// perspective of the current network namespace. It is not to be confused with
+// the general namespace IDs, which are under their hood (device ID, inode)
+// tuples, where those inodes are managed by the special “nsfs”.
 //
 // If no nsid has been assigned yet to the passed network namespace from the
-// perspective of the current network namespace, NsID will assign a random nsid
+// perspective of the current network namespace, ID will assign a random nsid
 // and return it.
-func NsID[R ~int | ~string](netns R) int {
-	GinkgoHelper()
+func ID[R ~int | ~string](netns R) int {
+	gi.GinkgoHelper()
 
 	var netnsfd int
 	switch ref := any(netns).(type) {
@@ -42,11 +44,11 @@ func NsID[R ~int | ~string](netns R) int {
 	case string:
 		var err error
 		netnsfd, err = unix.Open(ref, unix.O_RDONLY, 0)
-		Expect(err).NotTo(HaveOccurred(), "cannot open network namespace reference %v", ref)
+		g.Expect(err).NotTo(g.HaveOccurred(), "cannot open network namespace reference %v", ref)
 		defer unix.Close(netnsfd)
 	}
 	netnsid, err := netlink.GetNetNsIdByFd(netnsfd)
-	Expect(err).NotTo(HaveOccurred(), "cannot retrieve netnsid")
+	g.Expect(err).NotTo(g.HaveOccurred(), "cannot retrieve netnsid")
 	// netnsid might be -1, signalling that no netnsid has been assigned yet ...
 	// which begs the question why RTM_GETNSID simply isn't allocating a free
 	// one...?!
@@ -62,6 +64,6 @@ func NsID[R ~int | ~string](netns R) int {
 		}
 		return netnsid
 	}
-	Fail("too many failed attempts to assign a new netnsid first")
+	gi.Fail("too many failed attempts to assign a new netnsid first")
 	return -1 // unreachable
 }

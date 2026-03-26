@@ -15,7 +15,10 @@
 package netns
 
 import (
+	"github.com/thediveo/notwork/nlhandle"
+	"github.com/thediveo/notwork/ns"
 	"github.com/thediveo/spacetest/netns"
+	"github.com/vishvananda/netlink"
 
 	gi "github.com/onsi/ginkgo/v2"
 )
@@ -73,4 +76,23 @@ func Ino[R ~int | ~string](netnsref R) uint64 {
 func CurrentIno() uint64 {
 	gi.GinkgoHelper()
 	return netns.CurrentIno()
+}
+
+// NewNetlinkHandle returns a *netlink.Handle that is connected to the specified
+// network namespace (in form of a file descriptor).
+//
+// Deprecated: use [nlhandle.New] instead.
+func NewNetlinkHandle(netnsfd int) *netlink.Handle {
+	gi.GinkgoHelper()
+	return nlhandle.New(netnsfd)
+}
+
+// ID returns the so-called network namespace ID, or “nsid” for short, for the
+// passed network namespace, either referenced by a file descriptor or a VFS
+// path name.
+//
+// Deprecated: use [ns.ID] instead.
+func NsID[R ~int | ~string](netns R) int {
+	gi.GinkgoHelper()
+	return ns.ID(netns)
 }
