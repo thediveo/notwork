@@ -21,7 +21,8 @@ import (
 	"github.com/thediveo/notwork/dummy"
 	"github.com/thediveo/notwork/netdevsim"
 	"github.com/thediveo/notwork/netdevsim/ensure"
-	"github.com/thediveo/notwork/netns"
+	"github.com/thediveo/notwork/nlhandle"
+	"github.com/thediveo/spacetest/netns"
 	"github.com/vishvananda/netlink"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -80,7 +81,7 @@ var _ = Describe("provides transient MACVLAN network interfaces", Ordered, func(
 			WithLinkNamespace(dmyNetnsfd))
 		Expect(mcvlan.Attrs().Index).NotTo(BeZero())
 
-		destnlh := netns.NewNetlinkHandle(destNetnsfd)
+		destnlh := nlhandle.New(destNetnsfd)
 		Expect(Successful(destnlh.LinkByName(mcvlan.Attrs().Name))).To(
 			HaveField("Attrs().Index", mcvlan.Attrs().Index))
 	})

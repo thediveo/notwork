@@ -23,7 +23,8 @@ import (
 
 	"github.com/mdlayher/devlink"
 	"github.com/thediveo/notwork/netdevsim/ensure"
-	"github.com/thediveo/notwork/netns"
+	"github.com/thediveo/notwork/nlhandle"
+	"github.com/thediveo/spacetest/netns"
 	"github.com/vishvananda/netlink"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -89,7 +90,7 @@ var _ = Describe("netdevsim network interfaces", Ordered, func() {
 					fmt.Appendf(nil, "%d 2 1", id), 0)).To(Succeed())
 				defer func() {
 					Expect(os.WriteFile(netdevsimRoot+"/del_device",
-						[]byte(fmt.Sprintf("%d", id)), 0)).To(Succeed())
+						fmt.Appendf(nil, "%d", id), 0)).To(Succeed())
 				}()
 
 				cl := Successful(devlink.New())
@@ -221,13 +222,13 @@ var _ = Describe("netdevsim network interfaces", Ordered, func() {
 				netnsfd1 := netns.NewTransient()
 				_, portnifs1 := NewTransient(InNamespace(netnsfd1))
 				Expect(netlink.LinkByName(portnifs1[0].Attrs().Name)).Error().To(HaveOccurred())
-				nlh1 := netns.NewNetlinkHandle(netnsfd1)
+				nlh1 := nlhandle.New(netnsfd1)
 				Expect(nlh1.LinkByName(portnifs1[0].Attrs().Name)).Error().NotTo(HaveOccurred())
 
 				netnsfd2 := netns.NewTransient()
 				_, portnifs2 := NewTransient(InNamespace(netnsfd2))
 				Expect(netlink.LinkByName(portnifs2[0].Attrs().Name)).Error().To(HaveOccurred())
-				nlh2 := netns.NewNetlinkHandle(netnsfd2)
+				nlh2 := nlhandle.New(netnsfd2)
 				Expect(nlh2.LinkByName(portnifs2[0].Attrs().Name)).Error().NotTo(HaveOccurred())
 
 				portnifs1[0].Attrs().Namespace = netlink.NsFd(netnsfd1)

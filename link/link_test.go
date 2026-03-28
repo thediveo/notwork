@@ -19,7 +19,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/thediveo/notwork/netns"
+	"github.com/thediveo/notwork/nlhandle"
+	"github.com/thediveo/spacetest/netns"
 	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
 
@@ -279,7 +280,7 @@ var _ = Describe("creates transient network interfaces", func() {
 			Expect(dmy.Attrs().Index).NotTo(BeZero())
 
 			Expect(netlink.LinkByName(dmy.Attrs().Name)).Error().To(HaveOccurred())
-			netnsh := netns.NewNetlinkHandle(destNetnsfd)
+			netnsh := nlhandle.New(destNetnsfd)
 			l := Successful(netnsh.LinkByName(dmy.Attrs().Name))
 			Expect(l.Attrs().Index).To(Equal(dmy.Attrs().Index))
 		})
@@ -308,11 +309,11 @@ var _ = Describe("creates transient network interfaces", func() {
 			}, linkNetnsfd), "tstm-")
 			Expect(mcvlan.Attrs().Index).NotTo(BeZero())
 
-			netnsh := netns.NewNetlinkHandle(destNetnsfd)
+			netnsh := nlhandle.New(destNetnsfd)
 			l := Successful(netnsh.LinkByName(mcvlan.Attrs().Name))
 			Expect(l.Attrs().Index).To(Equal(mcvlan.Attrs().Index))
 
-			linkNetnsh := netns.NewNetlinkHandle(linkNetnsfd)
+			linkNetnsh := nlhandle.New(linkNetnsfd)
 			Expect(linkNetnsh.LinkByName(mcvlan.Attrs().Name)).Error().
 				To(HaveOccurred(), "macvlan appeared in link netns, but should be in target netns")
 		})

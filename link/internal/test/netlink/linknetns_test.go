@@ -19,7 +19,8 @@ import (
 	"time"
 
 	"github.com/thediveo/notwork/link"
-	"github.com/thediveo/notwork/netns"
+	"github.com/thediveo/notwork/nlhandle"
+	"github.com/thediveo/spacetest/netns"
 	"github.com/vishvananda/netlink"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -74,7 +75,7 @@ var _ = Describe("netlink network namespace handling", func() {
 			Expect(l.Attrs().Index).To(BeZero(), "someone finally fixed netlink.LinkAdd!")
 
 			Expect(Successful(
-				netns.NewNetlinkHandle(netnsfd).LinkByName(l.Name))).To(
+				nlhandle.New(netnsfd).LinkByName(l.Name))).To(
 				HaveField("Attrs()", And(
 					HaveField("Name", l.Attrs().Name),
 					HaveField("Index", Not(BeZero())))))

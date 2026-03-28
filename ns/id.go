@@ -45,7 +45,7 @@ func ID[R ~int | ~string](netns R) int {
 		var err error
 		netnsfd, err = unix.Open(ref, unix.O_RDONLY, 0)
 		g.Expect(err).NotTo(g.HaveOccurred(), "cannot open network namespace reference %v", ref)
-		defer unix.Close(netnsfd)
+		defer func() { _ = unix.Close(netnsfd) }()
 	}
 	netnsid, err := netlink.GetNetNsIdByFd(netnsfd)
 	g.Expect(err).NotTo(g.HaveOccurred(), "cannot retrieve netnsid")
