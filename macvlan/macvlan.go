@@ -52,11 +52,10 @@ func LocateHWParent() netlink.Link {
 		}
 		parents = append(parents, link)
 	}
+	Expect(parents).NotTo(BeEmpty(),
+		"could not find any hardware netdev in up/unknown state")
 	// Sort links in OperUp before OperUnknown.
 	slices.SortStableFunc(parents, compareLinksByOperState)
-	if len(parents) == 0 {
-		Fail("could not find any hardware netdev in up/unknown state")
-	}
 	// ContainElement guarantees when in filter result mode that there were
 	// one or more matches and fail otherwise in case of no matches at all.
 	// We just pick "randomly" (obligatory XKCD ref here) the parent to work

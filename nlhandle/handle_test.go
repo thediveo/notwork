@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package netns
+package nlhandle
 
 import (
 	"os"
@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gleak"
 	. "github.com/thediveo/fdooze"
+	"github.com/thediveo/spacetest/netns"
 	. "github.com/thediveo/success"
 )
 
@@ -48,13 +49,13 @@ var _ = Describe("netlink handles", func() {
 
 	It("fails with invalid network namespace fd", func() {
 		Expect(InterceptGomegaFailure(func() {
-			_ = NewNetlinkHandle(0)
+			_ = New(0)
 		})).To(MatchError(ContainSubstring(
 			"failed to set into network namespace 0 while creating netlink socket: invalid argument")))
 	})
 
 	It("correctly connects to a transient network namespace", func() {
-		netnsfd := NewTransient()
+		netnsfd := netns.NewTransient()
 		dmy := &netlink.Dummy{
 			LinkAttrs: netlink.LinkAttrs{
 				Name:      dummyNifName, // avoid circular import of link package
@@ -64,7 +65,7 @@ var _ = Describe("netlink handles", func() {
 		Expect(netlink.LinkAdd(dmy)).To(Succeed())
 		Expect(dmy.Index).To(BeZero(), "someone finally fixed netlink.LinkAdd")
 
-		netnsh := NewNetlinkHandle(netnsfd)
+		netnsh := New(netnsfd)
 		Expect(Successful(netnsh.LinkList())).
 			To(ConsistOf(
 				HaveField("LinkAttrs.Name", "lo"),
@@ -73,7 +74,7 @@ var _ = Describe("netlink handles", func() {
 					HaveField("Index", Not(BeZero()))))),
 				"missing dummy link, it's somewhere else?!")
 
-		hostnetnsh := NewNetlinkHandle(Current())
+		hostnetnsh := New(netns.Current())
 		Expect(Successful(hostnetnsh.LinkList())).
 			NotTo(ContainElement(HaveField("LinkAttrs", And(
 				HaveField("Name", dummyNifName),

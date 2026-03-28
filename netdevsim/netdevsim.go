@@ -28,7 +28,7 @@ import (
 	"github.com/thediveo/faf"
 	"github.com/thediveo/notwork/link"
 	"github.com/thediveo/notwork/netdevsim/ensure"
-	"github.com/thediveo/notwork/netns"
+	"github.com/thediveo/spacetest/netns"
 	"github.com/vishvananda/netlink"
 
 	. "github.com/onsi/ginkgo/v2"   //nolint:staticcheck // ST1001 rule does not apply
@@ -40,10 +40,7 @@ import (
 // interfaces of transient netdevsim devices.
 const NetdevsimPrefix = "ndsi-"
 
-var (
-	_    = ensure.Netdevsim // ?%$@~*! godoc
-	fail = Fail             // allow testing Fails without terminally failing the current test.
-)
+var _ = ensure.Netdevsim // ?%$@~*! godoc
 
 type Options struct {
 	HasID      bool // false means: shut up and get me the next available ID!
@@ -136,7 +133,9 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 		}
 	}()
 
-	for attempt := 1; attempt <= 10; attempt++ {
+	for attempt := 1; ; attempt++ {
+		Expect(attempt).To(BeNumerically("<=", 10),
+			"too many failed attempts to create a transient netdevsim")
 		// locate the "next" available netdevsim ID, unless explicitly specified
 		// by caller...
 		id = options.ID
@@ -150,8 +149,8 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 			fmt.Appendf(nil, "%d %d %d", id, options.Ports, options.QueueCount), 0)
 		if err != nil {
 			if options.HasID {
-				fail(fmt.Sprintf("cannot create a netdevsim with ID %d, reason: %s",
-					id, err.Error()))
+				Expect(err).NotTo(HaveOccurred(),
+					"cannot create a netdevsim with ID %d", id)
 				return 0, nil // not reachable
 			}
 			continue // another attempt
@@ -166,11 +165,8 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 			Should(BeADirectory(), "netdevsim with ID %d failed to materialize", id)
 			// Set the number of VFs
 		err = os.WriteFile(devpath+"/sriov_numvfs", []byte(strconv.FormatUint(uint64(options.MaxVFs), 10)), 0)
-		if err != nil {
-			fail(fmt.Sprintf("cannot set maximum number of %d SR-IOV VFs on netdev with ID %d, reason: %s",
-				options.MaxVFs, id, err.Error()))
-			return 0, nil // not reachable
-		}
+		Expect(err).NotTo(HaveOccurred(),
+			"cannot set maximum number of %d SR-IOV VFs on netdev with ID %d", options.MaxVFs, id)
 		// Get the names of the port network interfaces and then rename them using random names.
 		nifnames := Successful(portNifnames(devlink, id))
 		links := make([]netlink.Link, 0, len(nifnames))
@@ -180,7 +176,9 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 		}
 	nextnif:
 		for _, nifname := range nifnames {
-			for attempt := 1; attempt <= 10; attempt++ {
+			for attempt := 1; ; attempt++ {
+				Expect(attempt).To(BeNumerically("<=", 10),
+					"too many failed attempts to generate a random port network interface name")
 				randomname := link.RandomNifname(NetdevsimPrefix)
 				// the port network interfaces of netdevsim devices don't have a
 				// "kind" as other virtual interfaces like "veth" do, but
@@ -201,8 +199,6 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 				})
 				continue nextnif
 			}
-			fail("too many failed attempts to generate a random port network interface name")
-			return 0, nil // not reachable
 		}
 		removeNetdevsim = false
 		DeferCleanup(func() {
@@ -212,8 +208,6 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 		})
 		return id, links
 	}
-	fail("too many failed attempts to create a transient netdevsim")
-	return 0, nil // not reachable
 }
 
 // lowestUnusedID returns the lowest available netdevsim ID (which start from

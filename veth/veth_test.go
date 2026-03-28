@@ -18,7 +18,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/thediveo/notwork/netns"
+	"github.com/thediveo/spacetest/netns"
 	"github.com/vishvananda/netlink"
 
 	. "github.com/onsi/ginkgo/v2"

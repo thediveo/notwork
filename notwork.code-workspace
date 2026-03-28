@@ -16,6 +16,9 @@
 			"ui.codelenses": {
 				"vulncheck": true,
 			}
-		}
+		},
+		"markdown.styles": [
+			"./.vscode/markdown-preview.css"
+		]
 	}
 }
