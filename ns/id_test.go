@@ -15,10 +15,15 @@
 package ns
 
 import (
+	"math/rand"
 	"os"
+	"runtime"
+	"syscall"
 	"time"
 
+	"github.com/thediveo/caps"
 	"github.com/thediveo/spacetest/netns"
+	"github.com/thediveo/testily/concur"
 	"github.com/vishvananda/netlink"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -31,9 +36,6 @@ import (
 var _ = Describe("transient network namespaces", Ordered, func() {
 
 	BeforeEach(func() {
-		if os.Getuid() != 0 {
-			Skip("needs root")
-		}
 		goodfds := Filedescriptors()
 		goodgos := Goroutines()
 		DeferCleanup(func() {
@@ -43,25 +45,88 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 		})
 	})
 
-	It("sets it first, when necessary", func() {
-		netnsfd := netns.NewTransient()
+	When("root", Ordered, func() {
 
-		// There should not be any nsid for the transient network namespace yet,
-		// when seen from our current network namespace.
-		Expect(Successful(netlink.GetNetNsIdByFd(netnsfd))).To(Equal(-1))
+		BeforeAll(func() {
+			if os.Getuid() != 0 {
+				Skip("needs root")
+			}
+		})
 
-		nsid := ID(netnsfd)
-		Expect(nsid).NotTo(Equal(-1))
-		Expect(ID(netnsfd)).To(Equal(nsid))
+		It("sets it first, when necessary", func() {
+			netnsfd := netns.NewTransient()
+
+			// There should not be any nsid for the transient network namespace yet,
+			// when seen from our current network namespace.
+			Expect(Successful(netlink.GetNetNsIdByFd(netnsfd))).To(Equal(-1))
+
+			nsid := ID(netnsfd)
+			Expect(nsid).NotTo(Equal(-1))
+			Expect(ID(netnsfd)).To(Equal(nsid))
+		})
+
+		It("gets a netnsid by path", func() {
+			orignetnsfd := netns.Current()
+			defer netns.EnterTransient()()
+
+			nsid := ID(orignetnsfd)
+			Expect(nsid).NotTo(Equal(-1))
+			Expect(ID("/proc/1/ns/net")).To(Equal(nsid))
+		})
+
+		Context("kernel", func() {
+
+			It("throws a dedicated errno for duplicate nsids", func() {
+				defer netns.EnterTransient()()
+				netnsfd := netns.Current()
+				netnsid := int(rand.Int31())
+				Expect(Successful(netlink.GetNetNsIdByFd(netnsfd))).To(Equal(-1))
+				Expect(netlink.SetNetNsIdByFd(netnsfd, netnsid)).To(Succeed())
+				Expect(netlink.SetNetNsIdByFd(netnsfd, netnsid)).To(MatchError(syscall.EEXIST))
+			})
+
+			It("throws another errno when lacking capability", func() {
+				defer netns.EnterTransient()()
+				netnsfd := netns.Current()
+				Expect(Successful(netlink.GetNetNsIdByFd(netnsfd))).To(Equal(-1))
+
+				errch := concur.PassWhenGone(func() error {
+					runtime.LockOSThread()
+
+					// drop all effective capabilities on this throw-away thread.
+					craps := Successful(caps.OfThisTask())
+					craps.Effective.Clear()
+					Expect(caps.SetForThisTask(craps)).To(Succeed())
+
+					return InterceptGomegaFailure(func() { _ = ID(netnsfd) })
+				})
+				// !!! since InterceptGomegaFailures modifies the Default
+				// gomega, we must not use the Default gomega here.
+				NewGomega(Fail).Eventually(errch).WithTimeout(2 * time.Second).Should(
+					Receive(MatchError(ContainSubstring("cannot assign any new nsid"))))
+			})
+
+		})
+
 	})
 
-	It("gets a netnsid by path", func() {
-		orignetnsfd := netns.Current()
-		defer netns.EnterTransient()()
+	When("not root", Ordered, func() {
 
-		nsid := ID(orignetnsfd)
-		Expect(nsid).NotTo(Equal(-1))
-		Expect(ID("/proc/1/ns/net")).To(Equal(nsid))
+		BeforeAll(func() {
+			if os.Getuid() == 0 {
+				Skip("no root")
+			}
+		})
+
+		Context("kernel", func() {
+
+			It("rejects setting nsids", func() {
+				Expect(netlink.SetNetNsIdByFd(netns.Current(), 12345 /* random number */)).Error().To(
+					MatchError(syscall.EPERM))
+			})
+
+		})
+
 	})
 
 })

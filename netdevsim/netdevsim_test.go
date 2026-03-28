@@ -155,16 +155,10 @@ var _ = Describe("netdevsim network interfaces", Ordered, func() {
 				id := lowestUnusedID("/")
 				_, portnifs := NewTransient(WithID(id))
 				Expect(portnifs).To(HaveLen(1))
-
-				oldfail := fail
-				defer func() { fail = oldfail }()
-				var msg string
-				fail = func(message string, callerSkip ...int) { msg = message; panic(message) }
-				Expect(func() {
+				err := InterceptGomegaFailure(func() {
 					_, _ = NewTransient(WithID(id))
-				}).To(Panic())
-				fail = oldfail
-				Expect(msg).To(ContainSubstring(fmt.Sprintf("cannot create a netdevsim with ID %d", id)))
+				})
+				Expect(err).To(MatchError(ContainSubstring(fmt.Sprintf("cannot create a netdevsim with ID %d", id))))
 			})
 
 		})

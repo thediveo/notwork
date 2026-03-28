@@ -86,6 +86,12 @@ var _ = Describe("provides transient MACVLAN network interfaces", Ordered, func(
 			HaveField("Attrs().Index", mcvlan.Attrs().Index))
 	})
 
+	It("fails when there's no suitable parent link", func() {
+		defer netns.EnterTransient()()
+		Expect(InterceptGomegaFailure(func() { _ = LocateHWParent() })).To(
+			MatchError(ContainSubstring("could not find any hardware netdev in")))
+	})
+
 	DescribeTable("comparing links by OperState",
 		func(lops1, lops2 int, expected int) {
 			Expect(compareLinksByOperState(

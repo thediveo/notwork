@@ -15,7 +15,6 @@
 package link
 
 import (
-	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -30,8 +29,6 @@ import (
 	. "github.com/onsi/ginkgo/v2" //nolint:staticcheck // ST1001 rule does not apply
 	. "github.com/onsi/gomega"    //nolint:staticcheck // ST1001 rule does not apply
 )
-
-var fail = Fail // allow testing Fails without terminally failing the current test.
 
 // Opt is a configuration option when creating a new network interface.
 type Opt func(*Link) error
@@ -92,9 +89,10 @@ func NewTransient(link netlink.Link, prefix string, opts ...Opt) netlink.Link {
 	GinkgoHelper()
 
 	Expect(link).NotTo(BeNil(), "need a non-nil link description")
-	if _, ok := link.Attrs().Namespace.(netlink.NsFd); link.Attrs().Namespace != nil && !ok {
-		fail("link.Attrs().Namespace reference must be nil or a netlink.NsFd")
-	}
+	Expect(link.Attrs().Namespace).To(SatisfyAny(
+		BeNil(),
+		BeAssignableToTypeOf(netlink.NsFd(42))),
+		"link.Attrs().Namespace reference must be nil or a netlink.NsFd")
 
 	// Process configuration options, if any...
 	link = EnsureWrap(link)
@@ -120,14 +118,12 @@ func NewTransient(link netlink.Link, prefix string, opts ...Opt) netlink.Link {
 	// resolve parent/master link ifindex references.
 	var linknetnsh *netlink.Handle // ...only needed inside NewTransient
 	if linkNamespace != nil {
-		linknetnsfd, ok := linkNamespace.(netlink.NsFd)
-		if !ok {
-			fail("wrapped namespace.LinkNamespace must be nil or a netlink.NsFd")
-		}
+		Expect(linkNamespace).To(BeAssignableToTypeOf(netlink.NsFd(42)),
+			"wrapped namespace.LinkNamespace must be nil or a netlink.NsFd")
 		var err error
-		linknetnsh, err = netlink.NewHandleAt(netns.NsHandle(linknetnsfd))
+		linknetnsh, err = netlink.NewHandleAt(netns.NsHandle(linkNamespace.(netlink.NsFd)))
 		Expect(err).NotTo(HaveOccurred(), "cannot create NETLINK handle for link network namespace")
-		defer linknetnsh.Close() // only needed momentarily
+		defer linknetnsh.Close() // only needed momentarily inside this fn
 	}
 
 	// We want to keep a netlink handle to the network namespace where the
@@ -146,9 +142,11 @@ func NewTransient(link netlink.Link, prefix string, opts ...Opt) netlink.Link {
 		// done yet.
 		netnsfd, err := unix.Open("/proc/thread-self/ns/net", unix.O_RDONLY, 0)
 		defer func() { _ = unix.Close(netnsfd) }()
-		Expect(err).NotTo(HaveOccurred(), "cannot determine current network namespace from procfs")
+		Expect(err).NotTo(HaveOccurred(),
+			"cannot determine current network namespace from procfs")
 		netnsh, err = netlink.NewHandleAt(netns.NsHandle(netnsfd))
-		Expect(err).NotTo(HaveOccurred(), "cannot create NETLINK handle for network namespace")
+		Expect(err).NotTo(HaveOccurred(),
+			"cannot create NETLINK handle for network namespace")
 	} else {
 		// Type assertion is guarded by BeAssignableToTypeOf assertion above.
 		netnsh, err = netlink.NewHandleAt(netns.NsHandle(link.Attrs().Namespace.(netlink.NsFd)))
@@ -163,7 +161,10 @@ func NewTransient(link netlink.Link, prefix string, opts ...Opt) netlink.Link {
 		}
 	}()
 
-	for attempt := 1; attempt <= 10; attempt++ {
+	for attempt := 1; ; attempt++ {
+		Expect(attempt).To(BeNumerically("<=", 10),
+			"too many failed attempts to create a transient network interface of type %q",
+			link.Type())
 		// Roll the dice to create a (new) random interface name...
 		ifname := base62Nifname(prefix)
 		link.Attrs().Name = ifname
@@ -183,10 +184,9 @@ func NewTransient(link netlink.Link, prefix string, opts ...Opt) netlink.Link {
 		if err != nil {
 			// did we run just run into an accidentally duplicate random name,
 			// or into a general error instead?
-			if errors.Is(err, os.ErrExist) {
-				continue
-			}
-			fail(fmt.Sprintf("cannot create a transient network interface of type %q, reason: %v", link.Type(), err))
+			Expect(err).To(MatchError(os.ErrExist),
+				"cannot create a transient network interface of type %q", link.Type())
+			continue
 		}
 		// Phew, this worked.
 		By(fmt.Sprintf("creating a transient network interface %q", link.Attrs().Name))
@@ -216,8 +216,6 @@ func NewTransient(link netlink.Link, prefix string, opts ...Opt) netlink.Link {
 		netnsh = nil
 		return link
 	}
-	fail(fmt.Sprintf("too many failed attempts to create a transient network interface of type %q", link.Type()))
-	return nil // not reachable
 }
 
 // EnsureUp brings the specified network interface up and waits for it to become
@@ -278,6 +276,8 @@ const maxNifnameLen = 15
 // Minimum of random base63 characters required.
 const minRandomLen = 4
 
+const maxPrefixLen = maxNifnameLen - minRandomLen
+
 // The set of characters to create a random string from.
 const base62chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
@@ -287,10 +287,9 @@ const base62chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVW
 // well as lowercase and uppercase ASCII letters.
 func base62Nifname(prefix string) string {
 	GinkgoHelper()
-	if len(prefix) > maxNifnameLen-minRandomLen {
-		fail(fmt.Sprintf("cannot create random network interface name, because prefix %q is longer than %d characters",
-			prefix, maxNifnameLen-4))
-	}
+	Expect(len(prefix)).To(BeNumerically("<=", maxPrefixLen),
+		"cannot create random network interface name, because prefix %q is longer than %d characters",
+		prefix, maxPrefixLen)
 	name := make([]byte, maxNifnameLen)
 	copy(name, prefix)
 	for idx := len(prefix); idx < maxNifnameLen; idx++ {

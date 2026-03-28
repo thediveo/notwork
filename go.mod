@@ -18,7 +18,9 @@ require (
 	github.com/mdlayher/genetlink v0.0.0-20191008151445-a2cadeac9a63 // indirect
 	github.com/mdlayher/netlink v0.0.0-20191009155606-de872b0d824b // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
+	github.com/thediveo/caps v0.10.2 // indirect
 	github.com/thediveo/ioctl v0.9.4 // indirect
+	github.com/thediveo/testily v0.1.0 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8 // indirect

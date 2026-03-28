@@ -16,6 +16,7 @@ package ns
 
 import (
 	"math/rand"
+	"syscall"
 
 	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
@@ -55,15 +56,17 @@ func ID[R ~int | ~string](netns R) int {
 	if netnsid != -1 {
 		return netnsid
 	}
-	for attempt := 1; attempt <= 10; attempt++ {
+	for attempt := 1; ; attempt++ {
+		g.Expect(attempt).To(g.BeNumerically("<=", 10),
+			"too many failed attempts to assign a new netnsid first")
 		// as per https://elixir.bootlin.com/linux/v6.9.4/source/lib/idr.c#L87,
 		// netnsid's are uint32 (to use Go's data type terminology).
 		netnsid := int(rand.Int31())
 		if err := netlink.SetNetNsIdByFd(netnsfd, netnsid); err != nil {
+			g.Expect(err).To(g.MatchError(syscall.EEXIST),
+				"no nsid yet and cannot assign any new nsid")
 			continue
 		}
 		return netnsid
 	}
-	gi.Fail("too many failed attempts to assign a new netnsid first")
-	return -1 // unreachable
 }

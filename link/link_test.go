@@ -61,17 +61,11 @@ var _ = Describe("creates transient network interfaces", func() {
 		})
 
 		It("respects length restrictions, failing for overlong names", func() {
-			oldfail := fail
-			var msg string
-			fail = func(message string, callerSkip ...int) {
-				msg = message
-				panic("canary")
-			}
-			Expect(func() {
+			err := InterceptGomegaFailure(func() {
 				_ = RandomNifname("a-very-long-prefix-that-breaks-the-box")
-			}).To(PanicWith("canary"))
-			fail = oldfail
-			Expect(msg).To(HavePrefix("cannot create random network interface name"))
+			})
+			Expect(err).To(MatchError(
+				ContainSubstring("cannot create random network interface name")))
 		})
 
 	})
@@ -135,17 +129,11 @@ var _ = Describe("creates transient network interfaces", func() {
 					Namespace: "42",
 				},
 			}
-			oldfail := fail
-			var msg string
-			fail = func(message string, callerSkip ...int) {
-				msg = message
-				panic("canary")
-			}
-			Expect(func() {
+			err := InterceptGomegaFailure(func() {
 				_ = NewTransient(templ, dummyPrefix)
-			}).To(PanicWith("canary"))
-			fail = oldfail
-			Expect(msg).To(Equal("link.Attrs().Namespace reference must be nil or a netlink.NsFd"))
+			})
+			Expect(err).To(MatchError(
+				ContainSubstring("link.Attrs().Namespace reference must be nil or a netlink.NsFd")))
 		})
 
 	})
@@ -158,17 +146,11 @@ var _ = Describe("creates transient network interfaces", func() {
 	})
 
 	It("fails the spec on failure", func() {
-		oldfail := fail
-		var msg string
-		fail = func(message string, callerSkip ...int) {
-			msg = message
-			panic("canary")
-		}
-		Expect(func() {
+		err := InterceptGomegaFailure(func() {
 			_ = NewTransient(&netlink.Macvlan{ /* no parent */ }, "ohno-")
-		}).To(PanicWith("canary"))
-		fail = oldfail
-		Expect(msg).To(MatchRegexp(`cannot create a transient network interface .*, reason: invalid argument`))
+		})
+		Expect(err).To(MatchError(MatchRegexp(
+			`(?s)cannot create a transient network interface .*\n+\s+invalid argument`)))
 	})
 
 	It("removes a transient network interface in a different network namespace", func() {
