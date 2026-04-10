@@ -24,7 +24,7 @@ type NodesByPos[T ast.Node] map[token.Pos]T
 
 // NewNodesByPosOf returns a new map from token positions to AST nodes of
 // type T, from the passed set of files.
-func NewNodesByPosOf[T ast.Stmt](files []*ast.File) NodesByPos[T] {
+func NewNodesByPosOf[T ast.Node](files []*ast.File) NodesByPos[T] {
 	m := NodesByPos[T]{}
 	for _, file := range files {
 		for stmt := range AllOf[T](file) {

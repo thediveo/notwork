@@ -63,7 +63,7 @@ func run(pass *analysis.Pass) (any, error) {
 	deferStmtsByPos := astx.NewNodesByPosOf[*ast.DeferStmt](pass.Files)
 
 	for _, fn := range ssaResult.SrcFuncs {
-		for defr := range ssax.AllInstructionsOf[*ssa.Defer](fn) {
+		for defr := range ssax.InstructionsOf[*ssa.Defer](fn) {
 			if !isFromEnterTransient(defr.Call.Value) {
 				continue
 			}
@@ -166,7 +166,7 @@ func trackGlobal(glob *ssa.Global, seen map[ssa.Value]struct{}) bool {
 		if !ok || fn.Name() != "init" {
 			continue
 		}
-		for store := range ssax.AllInstructionsOf[*ssa.Store](fn) {
+		for store := range ssax.InstructionsOf[*ssa.Store](fn) {
 			if store.Addr == glob && track(store.Val, seen) {
 				return true
 			}

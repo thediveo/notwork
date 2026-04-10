@@ -15,11 +15,13 @@
 package testsauce
 
 import (
+	"fmt"
 	"go/ast"
 	"go/importer"
 	"go/parser"
 	"go/token"
 	"go/types"
+	"path/filepath"
 
 	gi "github.com/onsi/ginkgo/v2"
 	g "github.com/onsi/gomega"
@@ -45,6 +47,18 @@ func (f *File) FileSet() *token.FileSet {
 
 	g.Expect(f.fileset).NotTo(g.BeNil())
 	return f.fileset
+}
+
+// Position returns a textual representation for the specified position in the
+// form of “<filename>:<line>:<col>”, where the filename is the so-called
+// basename and thus without any path. If the position is invalid, Position
+// returns an empty string.
+func (f *File) Position(pos token.Pos) string {
+	p := f.fileset.Position(pos)
+	if p.Line == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%s:%d:%d", filepath.Base(p.Filename), p.Line, p.Column)
 }
 
 // MustParse returns a File (wrapping an *ast.File) for the passed valid Go

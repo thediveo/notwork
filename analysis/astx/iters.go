@@ -20,10 +20,13 @@ import (
 	"iter"
 )
 
-// AllOf iterates over AST nodes of the specified type T that must satisfy
+// AllOf iterates over AST nodes of the specified type T, where T must satisfy
 // [ast.Node].
 func AllOf[T ast.Node](root ast.Node) iter.Seq[T] {
 	return func(yield func(T) bool) {
+		if root == nil {
+			return
+		}
 		for node := range ast.Preorder(root) {
 			node, ok := node.(T)
 			if !ok {

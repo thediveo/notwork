@@ -25,7 +25,7 @@ import (
 // also from the specified package.
 func AllPackageGlobalsAssignments(pkg *ssa.Package) iter.Seq2[*ssa.Global, ssa.Value] {
 	return func(yield func(*ssa.Global, ssa.Value) bool) {
-		for fn := range AllMembersOf[*ssa.Function](pkg) {
+		for fn := range MembersOf[*ssa.Function](pkg) {
 			if !yieldGlobalsAssignmentsRecursively(fn, yield) {
 				return
 			}
@@ -36,7 +36,7 @@ func AllPackageGlobalsAssignments(pkg *ssa.Package) iter.Seq2[*ssa.Global, ssa.V
 // pushGlobalAssignments yields all *ssa.Store instructions in the specified
 // function, as well as in any recursively nested anonymous functions.
 func yieldGlobalsAssignmentsRecursively(fn *ssa.Function, yield func(*ssa.Global, ssa.Value) bool) bool {
-	for store := range AllInstructionsOf[*ssa.Store](fn) {
+	for store := range InstructionsOf[*ssa.Store](fn) {
 		global, ok := store.Addr.(*ssa.Global)
 		if !ok {
 			continue

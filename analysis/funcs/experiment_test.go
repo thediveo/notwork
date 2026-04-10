@@ -12,29 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package pretty
+package funcs_test
 
 import (
-	"bytes"
-	"fmt"
-	"io"
-	"strings"
+	"go/ast"
+
+	"github.com/thediveo/notwork/analysis/astx"
+	"github.com/thediveo/notwork/analysis/testsauce"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-const DefaultIndent = 4
+var _ = Describe("experimental tests", func() {
 
-func Indent(s string, level uint) string {
-	indentation := strings.Repeat(" ", int(level*DefaultIndent))
-	var out bytes.Buffer
+	It("experiments", func() {
+		f, pkg, typeinfo := testsauce.MustParse(
+			`package main
 
-	for line := range strings.Lines(s) {
-		out.WriteString(indentation)
-		out.WriteString(line) // note bene: still includes trailing \n, if any
-	}
+func Foo() func() { return func() { } } //anchor:Foo
 
-	return out.String()
+var F = Foo
+
+func main() {
+	defer Foo() //anchor:defer-Foo
+	defer Foo() //anchor:defer-Foo-result
 }
+`).MustTypeCheck()
+		nodemap = astx.NewNodesByPosOf[ast.Node]([]*ast.File{f.File()})
+		ssapkg := f.MustBuildSSAPkg()
 
-func Iprintf(w io.Writer, level uint, format string, a ...any) {
-	fmt.Fprint(w, Indent(fmt.Sprintf(format, a...), level))
-}
+	})
+
+})

@@ -15,7 +15,9 @@
 package testsauce_test
 
 import (
+	"go/token"
 	"go/types"
+	"math"
 
 	"github.com/thediveo/notwork/analysis/testsauce"
 
@@ -85,5 +87,18 @@ var _ = thisDoesNotExist
 		})
 
 	})
+
+	FDescribeTable("printing positions",
+		func(pos int, expected string) {
+			f := testsauce.MustParse(
+				`package main
+func main() {}
+`)
+			Expect(f.Position(token.Pos(pos))).To(Equal(expected))
+		},
+		Entry(nil, 0, ""),
+		Entry(nil, 1, "sauce.go:1:1"),
+		Entry(nil, math.MaxInt, ""), // look mum, no panic!
+	)
 
 })

@@ -22,9 +22,45 @@ import (
 	"golang.org/x/tools/go/ssa"
 )
 
-// AllInstructionsOf iterates over all instructions of type T of the specified
+// AllPkgInstructionsOf iterates over all instructions of type T in all
+// functions of the specified package, including anonymous functions.
+func AllPkgInstructionsOf[T ssa.Instruction](pkg *ssa.Package) iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for fn := range MembersOf[*ssa.Function](pkg) {
+			if !allFuncsInstructions(fn, yield) {
+				return
+			}
+		}
+	}
+}
+
+// AllFuncsInstructions iterates over all instructions of type T in this
+// function as well as all its direct and indirect anonymous functions.
+func AllFuncsInstructions[T ssa.Instruction](fn *ssa.Function) iter.Seq[T] {
+	return func(yield func(T) bool) {
+		allFuncsInstructions(fn, yield) // kick off the hunt...
+	}
+}
+
+// allFuncsInstructions iterates over all instructions of type T in this
+// function as well as all its direct and indirect anonymous functions.
+func allFuncsInstructions[T ssa.Instruction](fn *ssa.Function, yield func(T) bool) bool {
+	for instr := range InstructionsOf[T](fn) {
+		if !yield(instr) {
+			return false
+		}
+	}
+	for _, fn := range fn.AnonFuncs {
+		if !allFuncsInstructions(fn, yield) {
+			return false
+		}
+	}
+	return true
+}
+
+// InstructionsOf iterates over all instructions of type T of the specified
 // function.
-func AllInstructionsOf[T ssa.Instruction](fn *ssa.Function) iter.Seq[T] {
+func InstructionsOf[T ssa.Instruction](fn *ssa.Function) iter.Seq[T] {
 	return func(yield func(T) bool) {
 		if fn.Blocks == nil {
 			return
@@ -43,8 +79,8 @@ func AllInstructionsOf[T ssa.Instruction](fn *ssa.Function) iter.Seq[T] {
 	}
 }
 
-// AllMembersOf iterates over members of type T in the specified package.
-func AllMembersOf[T ssa.Member](pkg *ssa.Package) iter.Seq[T] {
+// MembersOf iterates over members of type T in the specified package.
+func MembersOf[T ssa.Member](pkg *ssa.Package) iter.Seq[T] {
 	return func(yield func(T) bool) {
 		if pkg == nil {
 			return

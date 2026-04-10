@@ -46,14 +46,14 @@ func foo(x int) int {
 
 	It("iterates correctly all elements of type *ssa.BinOp", func() {
 		Expect(slices.Collect(xiter.Map(
-			ssax.AllInstructionsOf[*ssa.BinOp](fn),
+			ssax.InstructionsOf[*ssa.BinOp](fn),
 			func(e *ssa.BinOp) string { return e.Op.String() },
 		))).To(Equal([]string{"+", "*"}))
 	})
 
 	It("correctly aborts the iterator", func() {
 		count := 0
-		for range ssax.AllInstructionsOf[*ssa.BinOp](fn) {
+		for range ssax.InstructionsOf[*ssa.BinOp](fn) {
 			count++
 			break
 		}

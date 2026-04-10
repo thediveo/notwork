@@ -37,10 +37,10 @@ var refactoring = funcs.Relocate(netnsOldImportPath, netnsNewImportPath,
 		"Ino",
 		"CurrentIno",
 	}).Remap(netnsOldImportPath, nlhandleNewImportPath,
-	funcs.FuncMapping{
+	funcs.NameMapping{
 		"NewNetlinkHandle": "New",
 	}).Remap(netnsOldImportPath, nsNewImportPath,
-	funcs.FuncMapping{
+	funcs.NameMapping{
 		"NsID": "ID",
 	})
 
@@ -56,7 +56,7 @@ func run(pass *analysis.Pass) (any, error) {
 		for pfnmapping, pos := range refactoring.AllFuncs(file, pass.TypesInfo) {
 			pass.Report(analysis.Diagnostic{
 				Pos:     pos,
-				Message: fmt.Sprintf("deprecated usage of %s", pfnmapping.Old.FullName()),
+				Message: fmt.Sprintf("deprecated usage of %s", pfnmapping.Before.String()),
 			})
 		}
 	}

@@ -12,29 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package pretty
+package ssax
 
 import (
-	"bytes"
-	"fmt"
-	"io"
-	"strings"
+	"iter"
+
+	"golang.org/x/tools/go/ssa"
 )
 
-const DefaultIndent = 4
-
-func Indent(s string, level uint) string {
-	indentation := strings.Repeat(" ", int(level*DefaultIndent))
-	var out bytes.Buffer
-
-	for line := range strings.Lines(s) {
-		out.WriteString(indentation)
-		out.WriteString(line) // note bene: still includes trailing \n, if any
+// AllReferrers iterates over all instructions directly referring to the
+// specified value. It hides the pointer-to-slice nuisance of
+// [ssa.Value.Referrers] and the associated nil handling.
+func AllReferrers(val ssa.Value) iter.Seq[ssa.Instruction] {
+	return func(yield func(ssa.Instruction) bool) {
+		refrs := val.Referrers()
+		if refrs == nil {
+			return
+		}
+		for _, instr := range *refrs {
+			if !yield(instr) {
+				return
+			}
+		}
 	}
-
-	return out.String()
-}
-
-func Iprintf(w io.Writer, level uint, format string, a ...any) {
-	fmt.Fprint(w, Indent(fmt.Sprintf(format, a...), level))
 }

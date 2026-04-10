@@ -12,29 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package pretty
+package funcs_test
 
 import (
-	"bytes"
-	"fmt"
-	"io"
-	"strings"
+	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-const DefaultIndent = 4
-
-func Indent(s string, level uint) string {
-	indentation := strings.Repeat(" ", int(level*DefaultIndent))
-	var out bytes.Buffer
-
-	for line := range strings.Lines(s) {
-		out.WriteString(indentation)
-		out.WriteString(line) // note bene: still includes trailing \n, if any
-	}
-
-	return out.String()
-}
-
-func Iprintf(w io.Writer, level uint, format string, a ...any) {
-	fmt.Fprint(w, Indent(fmt.Sprintf(format, a...), level))
+func TestFuncs(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "notwork/analysis/funcs package")
 }
