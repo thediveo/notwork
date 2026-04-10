@@ -4,7 +4,7 @@ self.onmessage = async (e) => {
   const { wasm } = e.data
 
   const go = new Go()
-  const decoder = new TextDecoder("utf-8")
+  const decoder = new TextDecoder('utf-8')
 
   if (!self.fs) {
     self.fs = {}
@@ -17,7 +17,7 @@ self.onmessage = async (e) => {
   self.fs.writeSync = function(fd, buf) {
     if (fd === 1) {
       self.postMessage({
-        type: "stdout",
+        type: 'stdout',
         data: decoder.decode(buf),
       })
     }
@@ -32,11 +32,11 @@ self.onmessage = async (e) => {
 
     await go.run(result.instance)
 
-    self.postMessage({ type: "done" })
+    self.postMessage({ type: 'done' })
 
   } catch (err) {
     self.postMessage({
-      type: "error",
+      type: 'error',
       data: err.toString(),
     })
   }
