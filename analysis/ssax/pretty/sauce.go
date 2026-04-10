@@ -36,9 +36,10 @@ func MustBuildSSA(sauce string) (*ssa.Package, *token.FileSet) {
 	}
 
 	typesInfo := &types.Info{
-		Types: map[ast.Expr]types.TypeAndValue{},
-		Defs:  map[*ast.Ident]types.Object{},
-		Uses:  map[*ast.Ident]types.Object{},
+		Types:     map[ast.Expr]types.TypeAndValue{},
+		Instances: map[*ast.Ident]types.Instance{},
+		Defs:      map[*ast.Ident]types.Object{},
+		Uses:      map[*ast.Ident]types.Object{},
 	}
 	conf := types.Config{
 		Importer: importer.Default(),

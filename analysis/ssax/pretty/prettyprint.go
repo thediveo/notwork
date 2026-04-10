@@ -105,11 +105,14 @@ func (p Printer) Func(fn *ssa.Function, role string, level uint) {
 		role += " "
 	}
 	IPrintf(p.w, level, "%s 󰊕 func %s %s\n", role, fn.String(), p.PosString(fn.Pos()))
-	p.Signature(fn.Signature, level+1)
+	p.TypeParamsList(fn.Signature.TypeParams(), level+1)
+	p.ParamsList(fn.Params, level+1)
+	p.TupleList(fn.Signature.Results(), " results", level+1)
+	//p.Signature(fn.Signature, level+1)
 	for _, block := range fn.Blocks {
 		IPrintf(p.w, level+1, "󱃖 block %d (%s)\n", block.Index, block.Comment)
 		for _, instr := range block.Instrs {
-			p.printInstr(instr, level+2)
+			p.Instr(instr, level+2)
 		}
 	}
 	// recursively print any anonymous functions directly beneath this function,
@@ -120,19 +123,25 @@ func (p Printer) Func(fn *ssa.Function, role string, level uint) {
 	}
 }
 
-func (p Printer) Signature(sig *types.Signature, level uint) {
-	p.TypeParamsList(sig.TypeParams(), level)
-	p.TupleList(sig.Params(), " parameters", level)
-	p.TupleList(sig.Results(), " results", level)
-}
-
 func (p Printer) TypeParamsList(tparams *types.TypeParamList, level uint) {
 	if tparams == nil || tparams.Len() == 0 {
 		return
 	}
-	IPrintf(p.w, level, "type parameters\n")
+	IPrintf(p.w, level, "󰰦 type parameters\n")
 	for tparam := range tparams.TypeParams() {
-		IPrintf(p.w, level+1, "%s\n", tparam.String())
+		obj := tparam.Obj()
+		IPrintf(p.w, level+1, "%s %s\n", obj.Name(), obj.Type().Underlying().String())
+	}
+}
+
+func (p Printer) ParamsList(params []*ssa.Parameter, level uint) {
+	if len(params) == 0 {
+		return
+	}
+	IPrintf(p.w, level, " parameters\n")
+	for _, param := range params {
+		obj := param.Object()
+		IPrintf(p.w, level+1, "%s %s\n", obj.Name(), obj.Type())
 	}
 }
 
@@ -148,14 +157,14 @@ func (p Printer) TupleList(params *types.Tuple, role string, level uint) {
 
 func (p Printer) Value(val ssa.Value, level uint) {
 	if instr, ok := val.(ssa.Instruction); ok {
-		p.printInstr(instr, level)
+		p.Instr(instr, level)
 		return
 	}
 	IPrintf(p.w, level, "󱄑 %s %T %s %s\n",
 		val.Name(), val, val.String(), p.PosString(val.Pos()))
 }
 
-func (p Printer) printInstr(instr ssa.Instruction, level uint) {
+func (p Printer) Instr(instr ssa.Instruction, level uint) {
 	var prefix string
 	if val, ok := instr.(ssa.Value); ok {
 		// probLLMs: so much for "thinking" and "reasoning" ... when asking
@@ -181,15 +190,21 @@ func (p Printer) printInstr(instr ssa.Instruction, level uint) {
 	}
 
 	IPrintf(p.w, level, "%s%T %s %s\n", prefix, instr, instr.String(), p.PosString(instr.Pos()))
-	// In case of a call instructions, that is, a function call, defer or go,
-	// print also the common parts for these different types of calls.
-	if callinstr, ok := instr.(ssa.CallInstruction); ok {
+	// Optionally more details...
+	switch instr := instr.(type) {
+	case ssa.CallInstruction:
+		// In case of a call instructions, that is, a function call, defer or go,
+		// print also the common parts for these different types of calls.
 		// Nota bene: the common value of call instructions is the preceeding
 		// instruction.
-		p.printCallCommon(callinstr.Common(), level+1)
+		p.printCallCommon(instr.Common(), level+1)
 		// Nota bene: the callinstr.Value() is only non-nil for calls and then
 		// it refers to this call itself. No use in trying to print it here, as
 		// we already did it just a few lines of code above.
+	case *ssa.Return:
+		for idx, result := range instr.Results {
+			IPrintf(p.w, level+1, "%d %s\n", idx, result.String())
+		}
 	}
 }
 
