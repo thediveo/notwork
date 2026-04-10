@@ -43,10 +43,12 @@ func Foo() { } //anchor:foo-def
 var F = Foo //anchor:foo-global
 var G = F
 
+func I[T any](v T) T { return v }
+
 func main() {
-	f1 := Foo 	//anchor:foo-f1
-	defer f1() 	//anchor:defer-f1
-	defer Foo() //anchor:defer-foo
+	f1 := I(Foo)	//anchor:foo-f1
+	defer f1() 		//anchor:defer-f1
+	defer Foo() 	//anchor:defer-foo
 }
 `).MustTypeCheck()
 		ankmap = astxm.MustCollectAnchors(xslices.Slice(f.File()), f.FileSet())

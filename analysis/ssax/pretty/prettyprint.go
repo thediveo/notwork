@@ -182,27 +182,20 @@ func (p Printer) Operands(instr ssa.Instruction, vals []*ssa.Value, level uint) 
 	if len(vals) == 0 {
 		return
 	}
-	var out bytes.Buffer
 	for _, val := range vals {
 		// tadah! Operands() returns lists that can contain nil values; it never
 		// copies ssa.Values by, erm, value, only references them.
 		if *val == nil {
-			out.WriteString("(nil) ")
+			Iprintf(p.w, level, "󰄾 (nil)\n")
 			continue
 		}
 		instr, ok := (*val).(ssa.Instruction)
 		if !ok {
-			out.WriteString("(")
-			out.WriteString((*val).String())
-			out.WriteString(") ")
+			Iprintf(p.w, level, "󰄾 (%s)\n", (*val).String())
 			continue
 		}
-		out.WriteString(p.InstrPseudoLocation(instr))
+		Iprintf(p.w, level, "󰄿 %s\n", p.InstrPseudoLocation(instr))
 	}
-	if out.Len() == 0 {
-		return
-	}
-	Iprintf(p.w, level, "󰄿 %s\n", out.String())
 }
 
 // Referrers renders a list of instructions that use the specified value, where
