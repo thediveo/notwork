@@ -184,12 +184,13 @@
         }
 
         .wasm-terminal .wasm-runagain {
-            background: transparent;
-            border: 1px solid color-mix(in srgb, var(--theme-color) 50%, transparent);
+            background: var(--sidebar-toggle-background, transparent);
+            border: 1px solid color-mix(in srgb, var(--text-color) 50%, transparent);
             color: var(--text-color);
             font: inherit;
             font-weight: var(--base-font-weight, 500);
             padding: 2px 8px;
+            cursor: pointer;
         }
 
         .xterm {
