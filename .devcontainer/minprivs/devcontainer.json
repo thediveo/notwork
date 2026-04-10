@@ -20,7 +20,12 @@
             "verbose": true,
             "html": true            // generate coverage.html
         },
-        "ghcr.io/thediveo/devcontainer-features/pin-github-action:0": {}
+        "ghcr.io/thediveo/devcontainer-features/pin-github-action:0": {},
+        "ghcr.io/thediveo/devcontainer-features/docsify:0": {
+            "port": "3333",
+            "livereload-port": "3334",
+            "docs-path": "docs"
+        }
     },
     "securityOpt": [ 
         "apparmor=unconfined"       // interferes in too many places

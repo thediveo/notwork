@@ -252,6 +252,8 @@ func (p Printer) Instr(instr ssa.Instruction, level uint) {
 		// print also the common parts for these different types of calls.
 		// Nota bene: the common value of call instructions is the preceeding
 		// instruction.
+		Iprintf(p.w, level+1, "... %+v\n", instr)
+		Iprintf(p.w, level+1, "... %+v\n", instr.Common().Value)
 		p.printCallCommon(instr.Common(), level+1)
 		// Nota bene: the callinstr.Value() is only non-nil for calls and then
 		// it refers to this call itself. No use in trying to print it here, as
@@ -287,9 +289,9 @@ func (p Printer) printCallCommon(cc *ssa.CallCommon, level uint) {
 	// nota bene: the method, if present, is always an *ssa.Function.
 	if cc.Method == nil {
 		p.Value(cc.Value, level)
-		p.Referrers(cc.Value, level+1)
+		//p.Referrers(cc.Value, level+1)
 		return
 	}
 	Iprintf(p.w, level, "%T %s . %s\n", cc.Value, cc.Value.String(), cc.Method.String())
-	p.Referrers(cc.Value, level+1)
+	//p.Referrers(cc.Value, level+1)
 }
