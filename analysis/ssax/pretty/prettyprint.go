@@ -166,12 +166,15 @@ func (p Printer) Value(val ssa.Value, level uint) {
 		val.Name(), val, val.String(), p.PosString(val.Pos()))
 }
 
-func (p Printer) PseudoLoc(instr ssa.Instruction) string {
+// InstrPseudoLocation renders a pseudo instruction location in the form of
+// “[<block>:<instr-num>]”. It appends a single space to the location string,
+// unless it cannot determine the location.
+func (p Printer) InstrPseudoLocation(instr ssa.Instruction) string {
 	idx := slices.Index(instr.Block().Instrs, instr)
 	if idx < 0 {
 		return ""
 	}
-	return fmt.Sprintf("[%d:%d] ", instr.Block().Index, idx)
+	return fmt.Sprintf("󰜘[%d:%d] ", instr.Block().Index, idx)
 }
 
 // Referrers renders a list of instructions that use the specified value, where
@@ -179,21 +182,12 @@ func (p Printer) PseudoLoc(instr ssa.Instruction) string {
 func (p Printer) Referrers(val ssa.Value, level uint) {
 	var out bytes.Buffer
 	header := true
-	first := true
 	for instr := range ssax.AllReferrers(val) {
 		if header {
 			header = false
 			out.WriteString(" ")
 		}
-		s := p.PseudoLoc(instr)
-		if s == "" {
-			continue
-		}
-		if !first {
-			out.WriteString(", ")
-			first = false
-		}
-		out.WriteString(s)
+		out.WriteString(p.InstrPseudoLocation(instr))
 	}
 	if header {
 		return
@@ -227,7 +221,7 @@ func (p Printer) Instr(instr ssa.Instruction, level uint) {
 	}
 
 	Iprintf(p.w, level, "%s%s%T %s %s\n",
-		p.PseudoLoc(instr), prefix, instr, instr.String(), p.PosString(instr.Pos()))
+		p.InstrPseudoLocation(instr), prefix, instr, instr.String(), p.PosString(instr.Pos()))
 	// Optionally more details...
 	switch instr := instr.(type) {
 	case ssa.CallInstruction:
