@@ -1,4 +1,4 @@
-//go:generate bash -c "GOOS=js GOARCH=wasm go build -o ../../simplemain.wasm main.go && gzip -9 -f ../../simplemain.wasm"
+//go:generate bash -c "GOOS=js GOARCH=wasm go build -o ../../hellorld.wasm main.go && gzip -9 -f ../../hellorld.wasm"
 
 // Copyright 2026 Harald Albrecht.
 //
@@ -16,20 +16,8 @@
 
 package main
 
-import (
-	"os"
-
-	"github.com/thediveo/notwork/analysis/ssax/pretty"
-)
+import "fmt"
 
 func main() {
-	pkg, fileset := pretty.MustBuildSSA(
-		`package main
-
-func main() {
-	println("Hellorld!")
-}
-`)
-	prt := pretty.NewPrinter(os.Stdout, fileset)
-	prt.Package(pkg, 0)
+	fmt.Println("The Gophers in your browser say: hellorld!")
 }
