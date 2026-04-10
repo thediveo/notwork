@@ -17,13 +17,19 @@
     }
 
     function createTerminal(el) {
+        const rows = parseInt(el.dataset.rows || '20', 10)
+        const cols = 80
+
         const term = new Terminal({
-            cols: 80,
-            rows: 20,
+            cols: cols,
+            rows: rows,
+            scrollback: 500,
             convertEol: true,
             cursorBlink: true,
-            fontFamily: "'Roboto Mono', 'Nerd Symbols', monospace",
-            fontSize: 14
+            fontFamily: "'Roboto Mono', 'Nerd Symbols Mono', monospace",
+            fontSize: 14,
+            lineHeight: 1.1,
+            letterSpacing: 0,
         })
 
         el.innerHTML = ''
@@ -35,7 +41,7 @@
     function runWasm(el, wasmFile) {
         const term = createTerminal(el)
 
-        term.writeln(color(`▶ Starting ${wasmFile}...\n`, ANSI.gray))
+        term.writeln(color(` Running ${wasmFile}...\n`, ANSI.gray))
 
         const worker = new Worker('_wasm/wasm-worker.js')
 
@@ -51,7 +57,7 @@
             }
 
             if (msg.type === 'done') {
-                term.writeln('\n' + color('✓ Finished', ANSI.gray))
+                term.writeln('\n' + color(' Finished', ANSI.gray))
             }
         }
 
