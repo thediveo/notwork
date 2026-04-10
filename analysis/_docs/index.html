@@ -25,7 +25,7 @@
         :root {
             --theme-color: rgb(94, 123, 211);
 
-            --base-font-family: Roboto;
+            --base-font-family: 'Roboto', 'Nerd Symbols';
             --base-font-weight: 300;
             --strong-font-weight: 500;
 
@@ -183,6 +183,14 @@
             font-style: italic;
         }
 
+        .wasm-terminal .wasm-runagain {
+            background: transparent;
+            border: 1px solid color-mix(in srgb, var(--theme-color) 50%, transparent);
+            color: var(--text-color);
+            font: inherit;
+            font-weight: var(--base-font-weight, 500);
+            padding: 2px 8px;
+        }
 
         .xterm {
             padding: 10px;

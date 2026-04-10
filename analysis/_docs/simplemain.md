@@ -1,6 +1,8 @@
 # Simple Main
 
-Let's analyse the SSA graph for this little program...
+Let's analyse the [SSA IR (intermediate
+representation)](https://pkg.go.dev/golang.org/x/tools/go/ssa) for this little
+program below:
 
 ```go
 package main
@@ -10,8 +12,8 @@ func main() {
 }
 ```
 
-Following is a live rendering of this example -- that has been compiled into
-[WASM](https://go.dev/wiki/WebAssembly) -- using my own stupid pretty-printer
-for SSA package graphs:
+Following is our _live rendering_ of the SSA data for this example using my own
+stupid pretty-printer for SSA package graphs -- for this, the above code has
+been compiled into [WASM](https://go.dev/wiki/WebAssembly):
 
-<div class='wasm-terminal' data-wasm='simplemain.wasm' data-rows="35"></div>
+<div class='wasm-terminal' data-wasm='simplemain.wasm' data-rows="30"></div>
