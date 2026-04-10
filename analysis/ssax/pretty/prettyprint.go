@@ -76,7 +76,8 @@ func (p Printer) Globals(pkg *ssa.Package, first bool, level uint) bool {
 		if values, ok := globassigns[global]; ok {
 			for _, val := range values {
 				if pos := p.PosString(val.Pos()); pos != "" {
-					Iprintf(p.w, level+2, "󰞓 value %s %s\n", val.String(), pos)
+					p.Value(val, level+2)
+					//Iprintf(p.w, level+2, "󰞓 %T %s %s\n", val, val.String(), pos)
 				}
 			}
 		}
@@ -177,6 +178,33 @@ func (p Printer) InstrPseudoLocation(instr ssa.Instruction) string {
 	return fmt.Sprintf("󰜘[%d:%d] ", instr.Block().Index, idx)
 }
 
+func (p Printer) Operands(instr ssa.Instruction, vals []*ssa.Value, level uint) {
+	if len(vals) == 0 {
+		return
+	}
+	var out bytes.Buffer
+	for _, val := range vals {
+		// tadah! Operands() returns lists that can contain nil values; it never
+		// copies ssa.Values by, erm, value, only references them.
+		if *val == nil {
+			out.WriteString("(nil) ")
+			continue
+		}
+		instr, ok := (*val).(ssa.Instruction)
+		if !ok {
+			out.WriteString("(")
+			out.WriteString((*val).String())
+			out.WriteString(") ")
+			continue
+		}
+		out.WriteString(p.InstrPseudoLocation(instr))
+	}
+	if out.Len() == 0 {
+		return
+	}
+	Iprintf(p.w, level, "󰄿 %s\n", out.String())
+}
+
 // Referrers renders a list of instructions that use the specified value, where
 // the referencing instructions are shown in “[<block>:<instr-num>]” format.
 func (p Printer) Referrers(val ssa.Value, level uint) {
@@ -185,7 +213,7 @@ func (p Printer) Referrers(val ssa.Value, level uint) {
 	for instr := range ssax.AllReferrers(val) {
 		if header {
 			header = false
-			out.WriteString(" ")
+			out.WriteString("󰄼 ")
 		}
 		out.WriteString(p.InstrPseudoLocation(instr))
 	}
@@ -223,6 +251,8 @@ func (p Printer) Instr(instr ssa.Instruction, level uint) {
 	Iprintf(p.w, level, "%s%s%T %s %s\n",
 		p.InstrPseudoLocation(instr), prefix, instr, instr.String(), p.PosString(instr.Pos()))
 	// Optionally more details...
+	p.Operands(instr, instr.Operands(nil), level+1)
+	// ...and even more details...
 	switch instr := instr.(type) {
 	case ssa.CallInstruction:
 		// In case of a call instructions, that is, a function call, defer or go,
@@ -233,8 +263,6 @@ func (p Printer) Instr(instr ssa.Instruction, level uint) {
 		// Nota bene: the callinstr.Value() is only non-nil for calls and then
 		// it refers to this call itself. No use in trying to print it here, as
 		// we already did it just a few lines of code above.
-	case *ssa.Store:
-		p.Value(instr.Val, level+1)
 	case *ssa.Return:
 		for idx, result := range instr.Results {
 			Iprintf(p.w, level+1, "%d %s\n", idx, result.String())

@@ -15,8 +15,7 @@
 package astx_test
 
 import (
-	"go/ast"
-
+	"github.com/thediveo/nonstd/xslices"
 	"github.com/thediveo/notwork/analysis/astx"
 	"github.com/thediveo/notwork/analysis/testsauce"
 
@@ -45,7 +44,7 @@ const Baz = "" 		//anchor: <-- nada, nüscht.
 
 func foo() { } //anchor:foo
 `)
-		anchorwhat = Successful(astx.CollectAnchors([]*ast.File{f.File()}, f.FileSet()))
+		anchorwhat = Successful(astx.CollectAnchors(xslices.Slice(f.File()), f.FileSet()))
 	})
 
 	DescribeTable("checks anchors",
@@ -66,7 +65,7 @@ func foo() { } //anchor:foo
 package main //anchor:1
 const Foo = 42 //anchor:1
 `)
-		Expect(astx.CollectAnchors([]*ast.File{f.File()}, f.FileSet())).
+		Expect(astx.CollectAnchors(xslices.Slice(f.File()), f.FileSet())).
 			Error().To(HaveOccurred())
 	})
 

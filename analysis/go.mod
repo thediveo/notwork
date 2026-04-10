@@ -22,7 +22,7 @@ require (
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/pprof v0.0.0-20260115054156-294ebfa9ad83 // indirect
 	github.com/onsi/gomega v1.39.1
-	github.com/thediveo/nonstd v0.8.0
+	github.com/thediveo/nonstd v0.9.0
 	github.com/thediveo/success v1.0.3
 	golang.org/x/mod v0.34.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect

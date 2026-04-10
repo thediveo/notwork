@@ -25,6 +25,7 @@ import (
 
 	gi "github.com/onsi/ginkgo/v2"
 	g "github.com/onsi/gomega"
+	"github.com/thediveo/nonstd/xslices"
 )
 
 // File wraps an *ast.File as well as an associated token.FileSet.
@@ -94,7 +95,7 @@ func (f *File) MustTypeCheck() (*File, *types.Package, *types.Info) {
 	}
 	pkg, err := conf.Check("main",
 		f.FileSet(),
-		[]*ast.File{f.file},
+		xslices.Slice(f.File()),
 		typesInfo)
 	g.Expect(err).NotTo(g.HaveOccurred(), "source fails to type-check")
 

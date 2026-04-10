@@ -17,6 +17,7 @@ package funcs_test
 import (
 	"go/ast"
 
+	"github.com/thediveo/nonstd/xslices"
 	"github.com/thediveo/notwork/analysis/astx"
 	"github.com/thediveo/notwork/analysis/testsauce"
 
@@ -39,7 +40,7 @@ func main() {
 	defer Foo() //anchor:defer-Foo-result
 }
 `).MustTypeCheck()
-		nodemap = astx.NewNodesByPosOf[ast.Node]([]*ast.File{f.File()})
+		nodemap = astx.NewNodesByPosOf[ast.Node](xslices.Slice(f.File()))
 		ssapkg := f.MustBuildSSAPkg()
 
 	})

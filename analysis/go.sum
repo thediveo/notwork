@@ -40,6 +40,8 @@ github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcU
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 github.com/thediveo/nonstd v0.8.0 h1:HrNX6ik+bo8k+r1acWfxoBIafYs/YMxw6q2ZpZcCF2c=
 github.com/thediveo/nonstd v0.8.0/go.mod h1:uyL5Qvqx1Q1St5JQvfZ/GKOfhw+rehmbXKG2Dkjsk54=
+github.com/thediveo/nonstd v0.9.0 h1:9lmh8PrQ2eaoYk5ix2e3OVhDdWSHLKvvNaD4glYKSHM=
+github.com/thediveo/nonstd v0.9.0/go.mod h1:uyL5Qvqx1Q1St5JQvfZ/GKOfhw+rehmbXKG2Dkjsk54=
 github.com/thediveo/opt v0.1.1 h1:Cy9NuHB6aNhUSHSYCePXeSNM0FDXoER0uJ/LrPGjm90=
 github.com/thediveo/opt v0.1.1/go.mod h1:M7EbT/+hQqBorPxvnQexFwjOHoalYmOkCcOBM2gP+qc=
 github.com/thediveo/success v1.0.3 h1:jaBpZ5ETfmCo9U3CRDtWPhtXQg3iW3beZH4ioLMR5RQ=

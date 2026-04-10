@@ -15,10 +15,10 @@
 package ssax_test
 
 import (
-	"go/ast"
 	"slices"
 
 	"github.com/thediveo/nonstd/xiter"
+	"github.com/thediveo/nonstd/xslices"
 	astxm "github.com/thediveo/notwork/analysis/astx/matchers"
 	"github.com/thediveo/notwork/analysis/ssax"
 	"github.com/thediveo/notwork/analysis/ssax/pretty"
@@ -40,20 +40,16 @@ var _ = Describe("iterating value referrers", Ordered, func() {
 
 func Foo() { } //anchor:foo-def
 
+var F = Foo //anchor:foo-global
+var G = F
+
 func main() {
-	f1 := Foo //anchor:f1
-	f2 := Foo //anchor:f2
-	defer f1()
-	defer f2()
-	x := 2
-	x = x * 2
-	y := 42
-	z := x * y
-	z += z
-	_ = z
+	f1 := Foo 	//anchor:foo-f1
+	defer f1() 	//anchor:defer-f1
+	defer Foo() //anchor:defer-foo
 }
 `).MustTypeCheck()
-		ankmap = astxm.MustCollectAnchors([]*ast.File{f.File()}, f.FileSet())
+		ankmap = astxm.MustCollectAnchors(xslices.Slice(f.File()), f.FileSet())
 		pkg = f.MustBuildSSAPkg()
 		pretty.NewPrinter(GinkgoWriter, f.FileSet()).Package(pkg, 0)
 	})

@@ -18,6 +18,7 @@ import (
 	"go/ast"
 
 	"github.com/thediveo/nonstd/xiter"
+	"github.com/thediveo/nonstd/xslices"
 	"github.com/thediveo/notwork/analysis/astx"
 	"github.com/thediveo/notwork/analysis/astx/matchers"
 	"github.com/thediveo/notwork/analysis/testsauce"
@@ -36,7 +37,7 @@ package main
 
 const Foo = 42 //anchor:foo
 `)
-		anks := matchers.MustCollectAnchors([]*ast.File{f.File()}, f.FileSet())
+		anks := matchers.MustCollectAnchors(xslices.Slice(f.File()), f.FileSet())
 		fooident, ok := xiter.FirstOk(
 			xiter.Filter(astx.AllOf[*ast.Ident](f.File()),
 				func(id *ast.Ident) bool { return id.Name == "Foo" }))

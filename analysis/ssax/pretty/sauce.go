@@ -21,6 +21,7 @@ import (
 	"go/token"
 	"go/types"
 
+	"github.com/thediveo/nonstd/xslices"
 	"golang.org/x/tools/go/ssa"
 )
 
@@ -46,14 +47,14 @@ func MustBuildSSA(sauce string) (*ssa.Package, *token.FileSet) {
 	}
 	pkg, err := conf.Check("main",
 		fileset,
-		[]*ast.File{file},
+		xslices.Slice(file),
 		typesInfo)
 	if err != nil {
 		panic(err)
 	}
 
 	prog := ssa.NewProgram(fileset, ssa.SanityCheckFunctions)
-	ssaPkg := prog.CreatePackage(pkg, []*ast.File{file}, typesInfo, false)
+	ssaPkg := prog.CreatePackage(pkg, xslices.Slice(file), typesInfo, false)
 	prog.Build()
 	return ssaPkg, fileset
 }

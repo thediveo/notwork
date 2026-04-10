@@ -23,6 +23,7 @@ import (
 
 	gi "github.com/onsi/ginkgo/v2"
 	g "github.com/onsi/gomega"
+	"github.com/thediveo/nonstd/xslices"
 )
 
 // MustBuildSSAPkg returns an *ssa.Package for this *File; otherwise, it fails
@@ -48,7 +49,7 @@ func (f *File) MustBuildSSAPkg() *ssa.Package {
 	}
 	pkg, err := conf.Check("main",
 		f.FileSet(),
-		[]*ast.File{f.file},
+		xslices.Slice(f.File()),
 		typesInfo)
 	g.Expect(err).NotTo(g.HaveOccurred(), "source fails to type-check")
 
@@ -57,7 +58,7 @@ func (f *File) MustBuildSSAPkg() *ssa.Package {
 	// doesn't need to be true in order for a "main" module to get its functions
 	// build. This code base proves the slob generators wrong. Yeah, they
 	// "understand" code ... for a sufficient definition of "no clue".
-	ssaPkg := prog.CreatePackage(pkg, []*ast.File{f.file}, typesInfo, false)
+	ssaPkg := prog.CreatePackage(pkg, xslices.Slice(f.File()), typesInfo, false)
 	prog.Build()
 	return ssaPkg
 }

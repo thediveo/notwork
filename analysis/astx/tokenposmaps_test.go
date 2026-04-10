@@ -39,7 +39,7 @@ func foo() { defer func(){}() }
 func init() { defer func(){}(); defer func(){}() }
 `)
 		fset := f.FileSet()
-		m := astx.NewNodesByPosOf[*ast.DeferStmt]([]*ast.File{f.File()})
+		m := astx.NewNodesByPosOf[*ast.DeferStmt](xslices.Slice(f.File()))
 		posers := xslices.Map(
 			slices.SortedFunc(maps.Keys(m), orderPos),
 			func(p token.Pos) string { return fset.Position(p).String() })
