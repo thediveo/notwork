@@ -24,7 +24,7 @@
         "ghcr.io/thediveo/devcontainer-features/docsify:0": {
             "port": "3333",
             "livereload-port": "3334",
-            "docs-path": "docs"
+            "docs-path": "analysis/_docs"
         }
     },
     "securityOpt": [ 
