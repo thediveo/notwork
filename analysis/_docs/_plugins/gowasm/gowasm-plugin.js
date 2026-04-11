@@ -25,11 +25,13 @@
         return (val === 'true') || (val === 'on') || (val === '1')
     }
 
-    function getTerminalConfig(el) {
+    function getWASMTerminalConfig(el) {
         return {
             rows: parseInt(el.dataset.rows || '20', 10),
             cursor: el.dataset.cursor || 'block',
             blink: parseBool(el.dataset.blink),
+
+            args: el.dataset.args || '',
         }
     }
 
@@ -52,7 +54,7 @@
     }
 
     function runWasm(el, pluginloc, wasmloc, wasmFile) {
-        const config = getTerminalConfig(el)
+        const config = getWASMTerminalConfig(el)
         el.innerHTML = '' // clear the terminal container
 
         // next, we need to wrap the terminal into a container consisting of a
@@ -111,7 +113,10 @@
                         break
                 }
             }
-            worker.postMessage({ wasm: pluginloc + wasmloc + wasmFile })
+            worker.postMessage({ 
+                wasm: pluginloc + wasmloc + wasmFile,
+                args: config.args,
+            })
         }
 
         btn.onclick = run

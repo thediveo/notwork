@@ -1,5 +1,3 @@
-//go:generate bash -c "GOOS=js GOARCH=wasm go build -o ../../hellorld.wasm main.go"
-
 // Copyright 2026 Harald Albrecht.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,8 +14,15 @@
 
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 func main() {
-	fmt.Println("The Gophers in your browser say: hellorld!")
+	song := "wot?"
+	if len(os.Args) > 1 {
+		song = os.Args[1]
+	}
+	fmt.Printf("The 66 dancing Gophers in your browser sing: %s\n", song)
 }

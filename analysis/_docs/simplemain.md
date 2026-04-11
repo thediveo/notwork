@@ -4,7 +4,7 @@ Let's analyse the [SSA IR (intermediate
 representation)](https://pkg.go.dev/golang.org/x/tools/go/ssa) for this little
 program below:
 
-```go
+```go id=bar
 package main
 
 func main() {

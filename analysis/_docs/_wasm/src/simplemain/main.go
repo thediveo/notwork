@@ -1,5 +1,3 @@
-//go:generate bash -c "GOOS=js GOARCH=wasm go build -o ../../simplemain.wasm main.go"
-
 // Copyright 2026 Harald Albrecht.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");

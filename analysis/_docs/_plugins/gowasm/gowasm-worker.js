@@ -1,9 +1,26 @@
 importScripts('wasm_exec.js')
 
 self.onmessage = async (e) => {
-    const { wasm } = e.data
+
+    function simpleParseArgs(str) {
+        if (!str) return []
+
+        const re = /"([^"]*)"|'([^']*)'|[^\s]+/g
+        const args = []
+        let match
+
+        while ((match = re.exec(str)) !== null) {
+            args.push(match[1] ?? match[2] ?? match[0])
+        }
+
+        return args
+    }
+
+    const { wasm, args } = e.data
 
     const go = new Go()
+    go.argv = [wasm, ...simpleParseArgs(args)]
+
     const decoder = new TextDecoder('utf-8')
 
     if (!self.fs) {
@@ -12,7 +29,7 @@ self.onmessage = async (e) => {
 
     const originalWriteSync = self.fs.writeSync || function (fd, buf) {
         return buf.length
-    };
+    }
 
     self.fs.writeSync = function (fd, buf) {
         if (fd === 1) {
@@ -20,6 +37,7 @@ self.onmessage = async (e) => {
                 type: 'stdout',
                 data: decoder.decode(buf),
             })
+            return buf.length // don't chain
         }
         return originalWriteSync(fd, buf)
     }
@@ -50,7 +68,7 @@ self.onmessage = async (e) => {
         } catch (gzerr) {
             self.postMessage({
                 type: 'error',
-                data: 'first error:\n'+err.toString()+'\nsecond error:\n'+gzerr.toString(),
+                data: 'first error:\n' + err.toString() + '\nsecond error:\n' + gzerr.toString(),
             })
         }
     }

@@ -10,7 +10,7 @@ Go program  WASM binary  Docsify WASM Plugin  WASM execution  XTerm.
 
 Given the following little Go program...
 
-```go
+```go id=hellorld.go
 package main
 
 import "fmt"
@@ -25,5 +25,5 @@ browser when this page gets rendered, and then executed in a separate [web
 worker](https://en.wikipedia.org/wiki/Web_worker) in the background -- to keep
 the web page responsive.
 
-<div class='wasm-terminal' data-wasm='hellorld.wasm' data-rows="4"></div>
+<div class='wasm-terminal' data-wasm='hellorld.wasm' data-args="Hellorld!" data-rows="4"></div>
 
