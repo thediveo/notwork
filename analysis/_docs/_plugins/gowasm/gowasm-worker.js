@@ -16,10 +16,14 @@ self.onmessage = async (e) => {
         return args
     }
 
-    const { wasm, args } = e.data
+    const { wasm, args, codearg } = e.data
 
     const go = new Go()
-    go.argv = [wasm, ...simpleParseArgs(args)]
+    go.argv = [
+        wasm, 
+        ...simpleParseArgs(args),
+        ...(codearg ? [codearg] : []),
+    ]
 
     const decoder = new TextDecoder('utf-8')
 
@@ -35,6 +39,12 @@ self.onmessage = async (e) => {
         if (fd === 1) {
             self.postMessage({
                 type: 'stdout',
+                data: decoder.decode(buf),
+            })
+            return buf.length // don't chain
+        } else if (fd === 2) {
+            self.postMessage({
+                type: 'stderr',
                 data: decoder.decode(buf),
             })
             return buf.length // don't chain

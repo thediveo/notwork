@@ -15,26 +15,18 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/thediveo/notwork/analysis/ssax/pretty"
 )
 
 func main() {
-	pkg, fileset := pretty.MustBuildSSA(
-		`package main
-
-func Foo() func() {
-	return func() { }
-}
-
-var F = Foo
-
-func main() {
-	defer F()
-	defer F()()
-}
-`)
+	if len(os.Args) <= 1 {
+		fmt.Fprintf(os.Stderr, "usage: prettyssa THESOURCE")
+		os.Exit(1)
+	}
+	pkg, fileset := pretty.MustBuildSSA(os.Args[1])
 	prt := pretty.NewPrinter(os.Stdout, fileset)
 	prt.Package(pkg, 0)
 }

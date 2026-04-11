@@ -13,10 +13,17 @@ Given the following little Go program...
 ```go id=hellorld.go
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 func main() {
-	fmt.Println("The Gophers in your browser say: hellorld!")
+	song := "wot?"
+	if len(os.Args) > 1 {
+		song = os.Args[1]
+	}
+	fmt.Printf("The 66 dancing Gophers in your browser sing: %s\n", song)
 }
 ```
 

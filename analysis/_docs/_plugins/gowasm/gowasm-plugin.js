@@ -31,7 +31,8 @@
             cursor: el.dataset.cursor || 'block',
             blink: parseBool(el.dataset.blink),
 
-            args: el.dataset.args || '',
+            args: el.dataset.args || '', // will be parsed into os.Args[1:]
+            codeid: el.dataset.codeid || '', // append text contents of element with id
         }
     }
 
@@ -69,15 +70,21 @@
         toolbar.style.justifyContent = 'flex-end'
         toolbar.style.marginBottom = '4px'
 
-        // Run button
+        // add the "Run again" button to the "toolbar".
         const btn = document.createElement('button')
         btn.className = 'wasm-runagain'
         btn.textContent = '󰑓 Run again'
-
         toolbar.appendChild(btn)
+
         container.appendChild(toolbar)
         container.appendChild(termEl)
         el.appendChild(container)
+
+        var codearg = ''
+        if (config.codeid != '') {
+            const codeel = document.querySelector('code#'+CSS.escape(config.codeid))
+            codearg = codeel ? codeel.textContent : ''
+        }
 
         let worker = null
         function run() {
@@ -96,6 +103,9 @@
                 switch (msg.type) {
                     case 'stdout':
                         term.write(msg.data)
+                        break
+                    case 'stderr':
+                        term.write(colorize(msg.data, ANSI.red))
                         break
                     case 'error':
                         if (term.buffer.active.cursorX !== 0) {
@@ -116,6 +126,7 @@
             worker.postMessage({ 
                 wasm: pluginloc + wasmloc + wasmFile,
                 args: config.args,
+                codearg: codearg,
             })
         }
 
