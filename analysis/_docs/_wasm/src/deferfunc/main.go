@@ -1,4 +1,4 @@
-//go:generate bash -c "GOOS=js GOARCH=wasm go build -o ../../deferfunc.wasm main.go && gzip -9 -f ../../deferfunc.wasm"
+//go:generate bash -c "GOOS=js GOARCH=wasm go build -o ../../deferfunc.wasm main.go"
 
 // Copyright 2026 Harald Albrecht.
 //

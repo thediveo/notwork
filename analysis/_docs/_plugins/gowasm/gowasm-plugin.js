@@ -25,7 +25,7 @@
         return (val === 'true') || (val === 'on') || (val === '1')
     }
 
-    function getConfig(el) {
+    function getTerminalConfig(el) {
         return {
             rows: parseInt(el.dataset.rows || '20', 10),
             cursor: el.dataset.cursor || 'block',
@@ -51,11 +51,14 @@
         return term
     }
 
-    function runWasm(el, wasmFile) {
-        const config = getConfig(el)
+    function runWasm(el, pluginloc, wasmloc, wasmFile) {
+        const config = getTerminalConfig(el)
         el.innerHTML = '' // clear the terminal container
 
-        // we next want to wrap the terminal
+        // next, we need to wrap the terminal into a container consisting of a
+        // "toolbar" with the "ran again" button as well as the terminal element
+        // itself. This additionally gives us better control over setting proper
+        // margins, et cetera.
         const container = document.createElement('div')
         const toolbar = document.createElement('div')
         const termEl = document.createElement('div')
@@ -85,7 +88,7 @@
 
             term.writeln(colorize(` Running ${wasmFile}...`, ANSI.gray))
 
-            worker = new Worker('/_wasm/wasm-worker.js')
+            worker = new Worker(pluginloc+'gowasm-worker.js')
             worker.onmessage = e => {
                 const msg = e.data
                 switch (msg.type) {
@@ -108,7 +111,7 @@
                         break
                 }
             }
-            worker.postMessage({ wasm: wasmFile })
+            worker.postMessage({ wasm: pluginloc + wasmloc + wasmFile })
         }
 
         btn.onclick = run
@@ -119,16 +122,24 @@
         }
     }
 
-    function autoRun() {
+    function autoRun(pluginloc, wasmloc) {
         document.querySelectorAll('.wasm-terminal').forEach(el => {
             const wasm = el.dataset.wasm
             if (!wasm || el.__wasmStarted) return
             el.__wasmStarted = true
-            runWasm(el, wasm)
+            runWasm(el, pluginloc, wasmloc, wasm)
         })
     }
 
+    const pluginloc = document.currentScript.src.replace(/[^/]+$/, '')
+
     function wasmPlugin(hook, vm) {
+        const config = vm.config.gowasm || {}
+        config.wasmloc = typeof config.wasmloc === 'string' ? config.wasmloc : ''
+        if (config.wasmloc !== '' && !config.wasmloc.endsWith('/')) {
+            config.wasmloc += '/'
+        }
+
         // Invoked on each page load before new markdown is transformed to HTML.
         // Supports asynchronous tasks (see beforeEach documentation for details).
         hook.beforeEach(function () {
@@ -139,7 +150,7 @@
         })
         // Invoked on each page load after new HTML has been appended to the DOM
         hook.doneEach(function () {
-            autoRun() // setTimeout(autoRun, 100)
+            autoRun(pluginloc, config.wasmloc) // setTimeout(autoRun, 100)
         })
     }
 

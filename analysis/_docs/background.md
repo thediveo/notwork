@@ -21,7 +21,7 @@ func main() {
 ```
 
 ...the resulting (compressed) WASM binary of ~740k is then loaded into the
-browser when navigating to this page and executed in a separate [web
+browser when this page gets rendered, and then executed in a separate [web
 worker](https://en.wikipedia.org/wiki/Web_worker) in the background -- to keep
 the web page responsive.
 

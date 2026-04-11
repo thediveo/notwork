@@ -1,4 +1,4 @@
-//go:generate bash -c "GOOS=js GOARCH=wasm go build -o ../../simplemain.wasm main.go && gzip -9 -f ../../simplemain.wasm"
+//go:generate bash -c "GOOS=js GOARCH=wasm go build -o ../../simplemain.wasm main.go"
 
 // Copyright 2026 Harald Albrecht.
 //
