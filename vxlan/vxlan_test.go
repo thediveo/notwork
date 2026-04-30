@@ -45,12 +45,12 @@ var _ = Describe("provides transient VXLAN network interfaces", Ordered, func() 
 		})
 	})
 
-	It("creates a VXLAN with a dummy underlasy and a configuration option", func() {
+	It("creates a VXLAN with a dummy underlay and a configuration option", func() {
 		defer netns.EnterTransient()()
 		_ = NewTransient(dummy.NewTransientUp(), WithID(666))
 	})
 
-	It("creates a MACVLAN with its parent in a different network namespace", func() {
+	It("creates a VXLAN with its underlay in a different network namespace", func() {
 		dmyNetnsfd := netns.NewTransient()
 		dmy := dummy.NewTransient(dummy.InNamespace(dmyNetnsfd))
 
