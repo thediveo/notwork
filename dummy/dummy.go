@@ -15,8 +15,9 @@
 package dummy
 
 import (
-	"github.com/thediveo/notwork/link"
 	"github.com/vishvananda/netlink"
+
+	"github.com/thediveo/notwork/link"
 
 	. "github.com/onsi/ginkgo/v2" //nolint:staticcheck // ST1001 rule does not apply
 	. "github.com/onsi/gomega"    //nolint:staticcheck // ST1001 rule does not apply

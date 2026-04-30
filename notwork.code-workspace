@@ -5,13 +5,26 @@
 		}
 	],
 	"settings": {
-		"terminal.integrated.scrollback": 10000,
 		"go.lintTool": "golangci-lint-v2",
-		"go.vetOnSave": "workspace",
+		"go.alternateTools": {
+			"customFormatter": "golangci-lint-v2"
+		},
+		"go.formatTool": "custom",
+		"go.formatFlags": [
+			"fmt",
+			"--stdin"
+		],
+		"go.testTimeout": "300s",
+		"go.testFlags": [
+			"-v",
+			"-race",
+			"-ginkgo.v",
+			"-ginkgo.no-color"
+		],
 		"gopls": {
+			"ui.semanticTokens": true,
 			// https://github.com/golang/vscode-go/blob/master/docs/settings.md#uidiagnosticanalyses
-			"ui.diagnostic.analyses": {
-			},
+			"ui.diagnostic.analyses": {},
 			// https://github.com/golang/vscode-go/blob/master/docs/settings.md#uicodelenses
 			"ui.codelenses": {
 				"vulncheck": true,
@@ -19,6 +32,8 @@
 		},
 		"markdown.styles": [
 			"./.vscode/markdown-preview.css"
-		]
+		],
+		"statsBar.memoUsage.format": "$(chip) ${used}/${total} ${unit}, ${percent}%",
+		"statsBar.location": "Right",
 	}
 }

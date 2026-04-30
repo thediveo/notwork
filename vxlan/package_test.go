@@ -1,4 +1,4 @@
-// Copyright 2024 Harald Albrecht.
+// Copyright 2026 Harald Albrecht.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,20 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package dummy
+package vxlan
 
 import (
-	"github.com/vishvananda/netlink"
+	"testing"
 
-	"github.com/thediveo/notwork/link"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-// InNamespace configures a dummy network interface to be created in the
-// network namespace referenced by fdref, instead of creating it in the current
-// network namespace.
-func InNamespace(fdref int) Opt {
-	return func(l *link.Link) error {
-		l.Attrs().Namespace = netlink.NsFd(fdref)
-		return nil
-	}
+func TestVxLAN(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "notwork/vxlan package")
 }
