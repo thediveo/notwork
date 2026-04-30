@@ -15,8 +15,9 @@
 package vxlan
 
 import (
-	"github.com/thediveo/notwork/link"
 	"github.com/vishvananda/netlink"
+
+	"github.com/thediveo/notwork/link"
 
 	. "github.com/onsi/ginkgo/v2" //nolint:staticcheck // ST1001 rule does not apply
 	. "github.com/onsi/gomega"    //nolint:staticcheck // ST1001 rule does not apply
@@ -31,7 +32,7 @@ type Opt func(*link.Link) error
 
 // NewTransient creates and returns a new (and transient) VXLAN network
 // interface attached to the specified underlay network interface (which must be
-// a hardware network interface, including the dummy kind). CreateTransient
+// a hardware network interface, including the dummy kind). NewTransient
 // automatically defers proper automatic removal of the VXLAN network interface.
 func NewTransient(underlay netlink.Link, opts ...Opt) netlink.Link {
 	GinkgoHelper()

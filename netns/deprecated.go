@@ -15,10 +15,11 @@
 package netns
 
 import (
-	"github.com/thediveo/notwork/nlhandle"
-	"github.com/thediveo/notwork/ns"
 	"github.com/thediveo/spacetest/netns"
 	"github.com/vishvananda/netlink"
+
+	"github.com/thediveo/notwork/nlhandle"
+	"github.com/thediveo/notwork/ns"
 
 	gi "github.com/onsi/ginkgo/v2"
 )

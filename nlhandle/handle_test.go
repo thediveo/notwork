@@ -18,13 +18,13 @@ import (
 	"os"
 	"time"
 
+	"github.com/thediveo/spacetest/netns"
 	"github.com/vishvananda/netlink"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gleak"
 	. "github.com/thediveo/fdooze"
-	"github.com/thediveo/spacetest/netns"
 	. "github.com/thediveo/success"
 )
 

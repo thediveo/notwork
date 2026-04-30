@@ -18,9 +18,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/thediveo/spacetest/netns"
+
 	"github.com/thediveo/notwork/dummy"
 	"github.com/thediveo/notwork/nlhandle"
-	"github.com/thediveo/spacetest/netns"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
