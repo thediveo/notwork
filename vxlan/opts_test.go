@@ -1,4 +1,4 @@
-// Copyright 2024 Harald Albrecht.
+// Copyright 2026 Harald Albrecht.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,23 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package dummy
+package vxlan
 
 import (
-	"github.com/vishvananda/netlink"
-
 	"github.com/thediveo/notwork/link"
+	"github.com/vishvananda/netlink"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("dummy configuration options", func() {
+var _ = Describe("VXLAN configuration options", func() {
 
-	It("configures a different network namespace", func() {
-		l := &link.Link{Link: &netlink.Macvlan{}}
+	It("configures VXLAN", func() {
+		l := &link.Link{Link: &netlink.Vxlan{}}
+		for _, opt := range []Opt{
+			InNamespace(42),
+			WithID(666),
+			WithDestinationPort(12345),
+			WithTTL(123),
+			WithSourcePorts(66, 6),
+		} {
+			Expect(opt(l)).To(Succeed())
+		}
 		Expect(InNamespace(-42)(l)).To(Succeed())
 		Expect(l.Link).To(HaveField("Namespace", netlink.NsFd(-42)))
+		Expect(l.Link).To(HaveField("VxlanId", 666))
+		Expect(l.Link).To(HaveField("Port", 12345))
+		Expect(l.Link).To(HaveField("TTL", 123))
+		Expect(l.Link).To(HaveField("PortLow", 6))
+		Expect(l.Link).To(HaveField("PortHigh", 66))
 	})
 
 })

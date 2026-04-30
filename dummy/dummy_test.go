@@ -19,8 +19,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/thediveo/notwork/link"
 	"github.com/vishvananda/netlink"
+
+	"github.com/thediveo/notwork/link"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
