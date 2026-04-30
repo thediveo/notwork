@@ -18,10 +18,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/thediveo/notwork/link"
-	"github.com/thediveo/notwork/nlhandle"
 	"github.com/thediveo/spacetest/netns"
 	"github.com/vishvananda/netlink"
+
+	"github.com/thediveo/notwork/link"
+	"github.com/thediveo/notwork/nlhandle"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

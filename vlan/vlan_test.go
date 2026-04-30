@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package vxlan
+package vlan
 
 import (
 	"os"
@@ -30,7 +30,7 @@ import (
 	. "github.com/thediveo/success"
 )
 
-var _ = Describe("provides transient VXLAN network interfaces", Ordered, func() {
+var _ = Describe("provides transient VLAN network interfaces", Ordered, func() {
 
 	BeforeEach(func() {
 		if os.Getuid() != 0 {
@@ -45,24 +45,24 @@ var _ = Describe("provides transient VXLAN network interfaces", Ordered, func() 
 		})
 	})
 
-	It("creates a VXLAN with a dummy underlay and a configuration option", func() {
+	It("creates a VLAN with a dummy parent and a configuration option", func() {
 		defer netns.EnterTransient()()
-		_ = NewTransient(dummy.NewTransientUp(), WithID(666))
+		_ = NewTransient(999, dummy.NewTransientUp(), WithLooseBinding())
 	})
 
-	It("creates a VXLAN with its underlay in a different network namespace", func() {
+	It("creates a VLAN with its parent in a different network namespace", func() {
 		dmyNetnsfd := netns.NewTransient()
 		dmy := dummy.NewTransient(dummy.InNamespace(dmyNetnsfd))
 
 		destNetnsfd := netns.NewTransient()
-		vxlan := NewTransient(dmy,
+		vlan := NewTransient(999, dmy,
 			InNamespace(destNetnsfd),
 			WithLinkNamespace(dmyNetnsfd))
-		Expect(vxlan.Attrs().Index).NotTo(BeZero())
+		Expect(vlan.Attrs().Index).NotTo(BeZero())
 
 		destnlh := nlhandle.New(destNetnsfd)
-		Expect(Successful(destnlh.LinkByName(vxlan.Attrs().Name))).To(
-			HaveField("Attrs().Index", vxlan.Attrs().Index))
+		Expect(Successful(destnlh.LinkByName(vlan.Attrs().Name))).To(
+			HaveField("Attrs().Index", vlan.Attrs().Index))
 	})
 
 })

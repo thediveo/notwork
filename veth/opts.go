@@ -15,8 +15,9 @@
 package veth
 
 import (
-	"github.com/thediveo/notwork/link"
 	"github.com/vishvananda/netlink"
+
+	"github.com/thediveo/notwork/link"
 )
 
 // InNamespace configures the “first” VETH network interface to be created in

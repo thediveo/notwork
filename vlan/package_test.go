@@ -1,4 +1,4 @@
-// Copyright 2024 Harald Albrecht.
+// Copyright 2026 Harald Albrecht.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,30 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package macvlan
+package vlan
 
 import (
-	"github.com/vishvananda/netlink"
-
-	"github.com/thediveo/notwork/link"
+	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("MACVLAN configuration options", func() {
-
-	It("configures MACVLAN", func() {
-		l := &link.Link{Link: &netlink.Macvlan{}}
-		for _, opt := range []Opt{
-			InNamespace(42),
-			WithMode(netlink.MACVLAN_MODE_VEPA),
-		} {
-			Expect(opt(l)).To(Succeed())
-		}
-		Expect(InNamespace(-42)(l)).To(Succeed())
-		Expect(l.Link).To(HaveField("Namespace", netlink.NsFd(-42)))
-		Expect(l.Link).To(HaveField("Mode", netlink.MACVLAN_MODE_VEPA))
-	})
-
-})
+func TestVLAN(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "notwork/vlan package")
+}

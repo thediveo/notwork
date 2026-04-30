@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package vxlan
+package vlan
 
 import (
 	"github.com/vishvananda/netlink"
@@ -23,27 +23,30 @@ import (
 	. "github.com/onsi/gomega"    //nolint:staticcheck // ST1001 rule does not apply
 )
 
-// VxlanPrefix is the name prefix used for transient VXLAN network
+// VlanPrefix is the name prefix used for transient VLAN network
 // interfaces.
-const VxlanPrefix = "vxl-"
+const VlanPrefix = "vln-"
 
-// Opt is a configuration option when creating a new VXLAN network interface.
+// Opt is a configuration option when creating a new VLAN network interface.
 type Opt func(*link.Link) error
 
-// NewTransient creates and returns a new (and transient) VXLAN network
-// interface attached to the specified underlay network interface (which must be
-// a hardware network interface, including the dummy kind). NewTransient
-// automatically defers proper automatic removal of the VXLAN network interface.
-func NewTransient(underlay netlink.Link, opts ...Opt) netlink.Link {
+// NewTransient creates and returns a new (and transient) VLAN network interface
+// with VLAN ID passed in vid, and attached to the specified network interface.
+// NewTransient automatically defers proper automatic removal of the VLAN
+// network interface.
+func NewTransient(vid uint16, lnk netlink.Link, opts ...Opt) netlink.Link {
 	GinkgoHelper()
 
-	vxlan := &link.Link{
-		Link: &netlink.Vxlan{
-			VtepDevIndex: underlay.Attrs().Index,
+	vlan := &link.Link{
+		Link: &netlink.Vlan{
+			LinkAttrs: netlink.LinkAttrs{
+				ParentIndex: lnk.Attrs().Index,
+			},
+			VlanId: int(vid),
 		},
 	}
 	for _, opt := range opts {
-		Expect(opt(vxlan)).To(Succeed())
+		Expect(opt(vlan)).To(Succeed())
 	}
-	return link.NewTransient(vxlan, VxlanPrefix)
+	return link.NewTransient(vlan, VlanPrefix)
 }
