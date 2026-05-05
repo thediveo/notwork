@@ -15,6 +15,7 @@
 package link
 
 import (
+	"errors"
 	"os"
 	"runtime"
 	"time"
@@ -152,6 +153,12 @@ var _ = Describe("creates transient network interfaces", func() {
 		})
 		Expect(err).To(MatchError(MatchRegexp(
 			`(?s)cannot create a transient network interface .*\n+\s+invalid argument`)))
+	})
+
+	It("fails the spec on failing options", func() {
+		Expect(InterceptGomegaFailure(func() {
+			_ = NewTransient(&netlink.Dummy{}, "dmy-", func(l *Link) error { return errors.New("JKL305") })
+		})).To(MatchError(MatchRegexp(`JKL305`)))
 	})
 
 	It("removes a transient network interface in a different network namespace", func() {
