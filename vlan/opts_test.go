@@ -17,6 +17,7 @@ package vlan
 import (
 	"github.com/vishvananda/netlink"
 
+	"github.com/thediveo/notwork/internal/neu"
 	"github.com/thediveo/notwork/link"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -43,10 +44,10 @@ var _ = Describe("VLAN configuration options", func() {
 		Expect(WithLinkNamespace(-666)(l)).To(Succeed())
 		Expect(l).To(HaveField("LinkNamespace", netlink.NsFd(-666)))
 		Expect(l.Link).To(HaveField("VlanProtocol", netlink.VLAN_PROTOCOL_8021Q))
-		Expect(l.Link).To(HaveField("ReorderHdr", neu(true)))
-		Expect(l.Link).To(HaveField("Gvrp", neu(true)))
-		Expect(l.Link).To(HaveField("Mvrp", neu(true)))
-		Expect(l.Link).To(HaveField("LooseBinding", neu(true)))
+		Expect(l.Link).To(HaveField("ReorderHdr", neu.Value(true)))
+		Expect(l.Link).To(HaveField("Gvrp", neu.Value(true)))
+		Expect(l.Link).To(HaveField("Mvrp", neu.Value(true)))
+		Expect(l.Link).To(HaveField("LooseBinding", neu.Value(true)))
 
 		for _, opt := range []Opt{
 			With8021AD(),
@@ -58,10 +59,10 @@ var _ = Describe("VLAN configuration options", func() {
 			Expect(opt(l)).To(Succeed())
 		}
 		Expect(l.Link).To(HaveField("VlanProtocol", netlink.VLAN_PROTOCOL_8021AD))
-		Expect(l.Link).To(HaveField("ReorderHdr", neu(false)))
-		Expect(l.Link).To(HaveField("Gvrp", neu(false)))
-		Expect(l.Link).To(HaveField("Mvrp", neu(false)))
-		Expect(l.Link).To(HaveField("LooseBinding", neu(false)))
+		Expect(l.Link).To(HaveField("ReorderHdr", neu.Value(false)))
+		Expect(l.Link).To(HaveField("Gvrp", neu.Value(false)))
+		Expect(l.Link).To(HaveField("Mvrp", neu.Value(false)))
+		Expect(l.Link).To(HaveField("LooseBinding", neu.Value(false)))
 	})
 
 })

@@ -17,6 +17,7 @@ package vlan
 import (
 	"github.com/vishvananda/netlink"
 
+	"github.com/thediveo/notwork/internal/neu"
 	"github.com/thediveo/notwork/link"
 )
 
@@ -58,7 +59,7 @@ func With8021AD() Opt {
 // WithReorderingHeaders configures reordering of Ethernet headers.
 func WithReorderingHeaders() Opt {
 	return func(l *link.Link) error {
-		l.Link.(*netlink.Vlan).ReorderHdr = neu(true)
+		l.Link.(*netlink.Vlan).ReorderHdr = neu.Value(true)
 		return nil
 	}
 }
@@ -66,7 +67,7 @@ func WithReorderingHeaders() Opt {
 // WithoutReorderingHeaders configures to not reorder Ethernet headers.
 func WithoutReorderingHeaders() Opt {
 	return func(l *link.Link) error {
-		l.Link.(*netlink.Vlan).ReorderHdr = neu(false)
+		l.Link.(*netlink.Vlan).ReorderHdr = neu.Value(false)
 		return nil
 	}
 }
@@ -75,7 +76,7 @@ func WithoutReorderingHeaders() Opt {
 // Registration Protocol.
 func WithGVRP() Opt {
 	return func(l *link.Link) error {
-		l.Link.(*netlink.Vlan).Gvrp = neu(true)
+		l.Link.(*netlink.Vlan).Gvrp = neu.Value(true)
 		return nil
 	}
 }
@@ -84,7 +85,7 @@ func WithGVRP() Opt {
 // VLAN Registration Protocol.
 func WithoutGVRP() Opt {
 	return func(l *link.Link) error {
-		l.Link.(*netlink.Vlan).Gvrp = neu(false)
+		l.Link.(*netlink.Vlan).Gvrp = neu.Value(false)
 		return nil
 	}
 }
@@ -93,7 +94,7 @@ func WithoutGVRP() Opt {
 // VLAN Registration Protocol.
 func WithMVRP() Opt {
 	return func(l *link.Link) error {
-		l.Link.(*netlink.Vlan).Mvrp = neu(true)
+		l.Link.(*netlink.Vlan).Mvrp = neu.Value(true)
 		return nil
 	}
 }
@@ -102,7 +103,7 @@ func WithMVRP() Opt {
 // Multiple VLAN Registration Protocol.
 func WithoutMVRP() Opt {
 	return func(l *link.Link) error {
-		l.Link.(*netlink.Vlan).Mvrp = neu(false)
+		l.Link.(*netlink.Vlan).Mvrp = neu.Value(false)
 		return nil
 	}
 }
@@ -111,7 +112,7 @@ func WithoutMVRP() Opt {
 // state of the bound network interface.
 func WithLooseBinding() Opt {
 	return func(l *link.Link) error {
-		l.Link.(*netlink.Vlan).LooseBinding = neu(true)
+		l.Link.(*netlink.Vlan).LooseBinding = neu.Value(true)
 		return nil
 	}
 }
@@ -120,10 +121,7 @@ func WithLooseBinding() Opt {
 // the state of the bound network interface.
 func WithTightBinding() Opt {
 	return func(l *link.Link) error {
-		l.Link.(*netlink.Vlan).LooseBinding = neu(false)
+		l.Link.(*netlink.Vlan).LooseBinding = neu.Value(false)
 		return nil
 	}
 }
-
-// neu provides pre-1.26 Go compatibility.
-func neu[V any](v V) *V { return &v }
