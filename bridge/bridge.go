@@ -50,6 +50,8 @@ func NewTransient(opts ...Opt) netlink.Link {
 // AddPort adds the specified “port” link to the passed “br” bridge, failing the
 // current test in case the link cannot be added as a port to the bridge.
 func AddPort(br netlink.Link, port netlink.Link) {
+	GinkgoHelper()
+
 	Expect(br.Type()).To(Equal("bridge"), "expected br to be a bridge")
 	Expect(netlink.LinkSetMaster(port, br)).To(Succeed(), "cannot add link as port to bridge")
 }
