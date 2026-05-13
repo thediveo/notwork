@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/mdlayher/devlink"
@@ -67,6 +68,32 @@ var _ = Describe("netdevsim network interfaces", Ordered, func() {
 					ShouldNot(HaveLeaked(goodgos))
 				Expect(Filedescriptors()).NotTo(HaveLeakedFds(goodfds))
 			})
+		})
+
+		When("causing stress", func() {
+
+			It("keeps going", func() {
+				const parallel = 32
+
+				ch := make(chan struct{})
+				defer close(ch)
+
+				var wg sync.WaitGroup
+				wg.Add(parallel)
+				for range parallel {
+					go func() {
+						defer GinkgoRecover()
+						defer func() {
+							wg.Done()
+							<-ch
+						}()
+						netnsfd := netns.NewTransient()
+						_, _ = NewTransient(InNamespace(netnsfd))
+					}()
+				}
+				wg.Wait()
+			})
+
 		})
 
 		It("has netdevsim loaded", func() {
