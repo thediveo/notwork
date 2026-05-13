@@ -18,10 +18,12 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/mdlayher/devlink"
@@ -63,6 +65,11 @@ const (
 	netdevsimDevicePrefix = "netdevsim"
 )
 
+const (
+	waitForNetdevsim  = time.Duration(2 * time.Second)
+	probeForNetdevsim = time.Duration(10 * time.Millisecond)
+)
+
 // HasNetdevsim returns true if netdevsims are available on this host.
 //
 // Deprecated: use [load.Try] instead that tries to load the netdevsim kernel
@@ -94,12 +101,19 @@ func NewTransient(opts ...Opt) (id uint, links []netlink.Link) {
 
 	if options.NetnsFd >= 0 {
 		netns.Execute(options.NetnsFd, func() {
+			// we want failures to be reported at the user's call site, not
+			// here.
+			GinkgoHelper()
 			id, links = newTransient(options)
 		})
 	} else {
 		id, links = newTransient(options)
 	}
 	return
+}
+
+func netdevsimPath(id uint) string {
+	return fmt.Sprintf("%s/%s%d", netdevsimDevicesPath, netdevsimDevicePrefix, id)
 }
 
 // newTransient does the real work of creating a netdevsim device with the given
@@ -134,8 +148,8 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 		}
 	}()
 
-	for attempt := 1; ; attempt++ {
-		Expect(attempt).To(BeNumerically("<=", 10),
+	for devattempt := 1; ; devattempt++ {
+		Expect(devattempt).To(BeNumerically("<=", 10),
 			"too many failed attempts to create a transient netdevsim")
 		// locate the "next" available netdevsim ID, unless explicitly specified
 		// by caller...
@@ -143,7 +157,8 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 		if !options.HasID {
 			id = lowestUnusedID("/")
 		}
-		By(fmt.Sprintf("creating a transient netdevsim device with ID %d", id))
+		By(fmt.Sprintf("creating a transient netdevsim device with ID %d (attempt %d)",
+			id, devattempt))
 		// Create the netdevsim device, as well as its ports and thus network
 		// interfaces...
 		err := os.WriteFile(netdevsimRoot+"/new_device",
@@ -154,18 +169,31 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 					"cannot create a netdevsim with ID %d", id)
 				return 0, nil // not reachable
 			}
+			// if a netdevsim device already exists with this ID, we'll get back
+			// a syscall.ENOSPC; for every other error we should not retry and
+			// instead report the problem and fail the current test.
+			Expect(err).To(MatchError(syscall.ENOSPC),
+				"unable to create a transient netdevsim device with ID %d", id)
+			for waited := time.Duration(0); waited < waitForNetdevsim; waited += probeForNetdevsim {
+				if info, err := os.Stat(netdevsimPath(id)); err == nil {
+					if info.Mode().IsDir() {
+						break
+					}
+				}
+				time.Sleep(probeForNetdevsim)
+			}
+			time.Sleep(probeForNetdevsim * time.Duration(rand.UintN(10)))
 			continue // another attempt
 		}
 		removeNetdevsim = true
 		// Wait for the device to appear on the "netdevsim" bus; see also the
 		// Linux kernel's netdevsim self tests, such as:
 		// https://elixir.bootlin.com/linux/v6.9.6/source/tools/testing/selftests/drivers/net/netdevsim/devlink.sh
-		devpath := fmt.Sprintf("%s/%s%d", netdevsimDevicesPath, netdevsimDevicePrefix, id)
-		Eventually(func() string { return devpath }).
-			Within(2*time.Second).ProbeEvery(1*time.Millisecond).
+		Eventually(func() string { return netdevsimPath(id) }).
+			Within(waitForNetdevsim).ProbeEvery(probeForNetdevsim).
 			Should(BeADirectory(), "netdevsim with ID %d failed to materialize", id)
-			// Set the number of VFs
-		err = os.WriteFile(devpath+"/sriov_numvfs", []byte(strconv.FormatUint(uint64(options.MaxVFs), 10)), 0)
+		// Set the number of VFs
+		err = os.WriteFile(netdevsimPath(id)+"/sriov_numvfs", []byte(strconv.FormatUint(uint64(options.MaxVFs), 10)), 0)
 		Expect(err).NotTo(HaveOccurred(),
 			"cannot set maximum number of %d SR-IOV VFs on netdev with ID %d", options.MaxVFs, id)
 		// Get the names of the port network interfaces and then rename them using random names.
@@ -185,6 +213,10 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 				// "kind" as other virtual interfaces like "veth" do, but
 				// instead are virtual hardware interfaces; we thus use
 				// netlink's Device type instead of GenericDevice.
+				//
+				// note: we're here in the network namespace where the netsimdev
+				// netdev was created, thus we can simply issue RTNETLINK calls
+				// without thinking about namespacing.
 				if err := netlink.LinkSetName(&netlink.Device{
 					LinkAttrs: netlink.LinkAttrs{
 						Name: nifname,
