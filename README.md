@@ -104,4 +104,4 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Copyright and License
 
-Copyright 2023–25 Harald Albrecht, licensed under the Apache License, Version 2.0.
+Copyright 2023–26 Harald Albrecht, licensed under the Apache License, Version 2.0.

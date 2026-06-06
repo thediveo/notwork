@@ -4,9 +4,11 @@ go 1.25.0
 
 require (
 	github.com/hofstadter-io/cinful v1.0.0
-	github.com/onsi/ginkgo/v2 v2.28.1
-	github.com/onsi/gomega v1.39.1
-	github.com/thediveo/faf v0.2.2
+	github.com/onsi/ginkgo/v2 v2.29.0
+	github.com/onsi/gomega v1.41.0
+	github.com/thediveo/caps v0.10.2
+	github.com/thediveo/faf v0.2.3
+	github.com/thediveo/testily v0.1.0
 	github.com/vishvananda/netlink v1.3.1
 	pault.ag/go/modprobe v0.2.0
 )
@@ -18,29 +20,27 @@ require (
 	github.com/mdlayher/genetlink v0.0.0-20191008151445-a2cadeac9a63 // indirect
 	github.com/mdlayher/netlink v0.0.0-20191009155606-de872b0d824b // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
-	github.com/thediveo/caps v0.10.2 // indirect
 	github.com/thediveo/ioctl v0.9.4 // indirect
-	github.com/thediveo/testily v0.1.0 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8 // indirect
-	golang.org/x/mod v0.32.0 // indirect
-	golang.org/x/sync v0.19.0 // indirect
+	golang.org/x/mod v0.36.0 // indirect
+	golang.org/x/sync v0.20.0 // indirect
 	pault.ag/go/topsort v0.1.1 // indirect
 )
 
 require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/pprof v0.0.0-20260115054156-294ebfa9ad83 // indirect
+	github.com/google/pprof v0.0.0-20260402051712-545e8a4df936 // indirect
 	github.com/jinzhu/copier v0.4.0
 	github.com/mdlayher/devlink v0.0.0-20191111174559-94b7996630ec
-	github.com/thediveo/fdooze v0.3.2
-	github.com/thediveo/spacetest v0.9.1
-	github.com/thediveo/success v1.0.3
+	github.com/thediveo/fdooze v0.3.3
+	github.com/thediveo/spacetest v0.12.0
+	github.com/thediveo/success v1.3.1
 	github.com/vishvananda/netns v0.0.5
-	golang.org/x/net v0.49.0 // indirect
-	golang.org/x/sys v0.42.0
-	golang.org/x/text v0.33.0 // indirect
-	golang.org/x/tools v0.41.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/sys v0.45.0
+	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/tools v0.45.0 // indirect
 )
