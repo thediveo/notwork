@@ -21,7 +21,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/thediveo/caps"
+	"github.com/thediveo/caps/v2"
 	"github.com/thediveo/spacetest/netns"
 	"github.com/thediveo/testily/concur"
 	"github.com/vishvananda/netlink"
@@ -94,9 +94,9 @@ var _ = Describe("transient network namespaces", Ordered, func() {
 					runtime.LockOSThread()
 
 					// drop all effective capabilities on this throw-away thread.
-					craps := Successful(caps.OfThisTask())
-					craps.Effective.Clear()
-					Expect(caps.SetForThisTask(craps)).To(Succeed())
+					Expect(Successful(caps.OfCurrentTask()).
+						Effective().Clear().
+						ApplyToCurrentTask()).Error().NotTo(HaveOccurred())
 
 					return InterceptGomegaFailure(func() { _ = ID(netnsfd) })
 				})
