@@ -24,7 +24,7 @@ import (
 // the network namespace referenced by fdref, instead of creating it in the
 // current network namespace. The “second” VETH network interface will be
 // created in the current network namespace, use [WithPeerNamespace] to create
-// this end in a different network namespace.
+// that end in a different network namespace.
 func InNamespace(fdref int) Opt {
 	return func(l *link.Link) error {
 		l.Link.(*netlink.Veth).Namespace = netlink.NsFd(fdref)
@@ -34,9 +34,9 @@ func InNamespace(fdref int) Opt {
 
 // WithPeerNamespace configures the VETH peer end to be created inside the
 // network namespace referenced by fd.
-func WithPeerNamespace(fd int) Opt {
+func WithPeerNamespace(fdref int) Opt {
 	return func(v *link.Link) error {
-		v.Link.(*netlink.Veth).PeerNamespace = netlink.NsFd(fd)
+		v.Link.(*netlink.Veth).PeerNamespace = netlink.NsFd(fdref)
 		return nil
 	}
 }

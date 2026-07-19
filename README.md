@@ -5,7 +5,7 @@
 ![build and test](https://github.com/thediveo/notwork/actions/workflows/buildandtest.yaml/badge.svg?branch=master)
 [![goroutines](https://img.shields.io/badge/go%20routines-not%20leaking-success)](https://pkg.go.dev/github.com/onsi/gomega/gleak)
 [![file descriptors](https://img.shields.io/badge/file%20descriptors-not%20leaking-success)](https://pkg.go.dev/github.com/thediveo/fdooze)
-![Coverage](https://img.shields.io/badge/Coverage-95.6%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-95.8%25-brightgreen)
 
 A small package to help with creating transient Linux virtual network elements
 for testing purposes, without having to deal with the tedious details of proper
@@ -16,6 +16,10 @@ and robust cleanup.
 [RTNETLINK](https://www.man7.org/linux/man-pages/man7/rtnetlink.7.html)
 communication, as well as the [Ginkgo](https://github.com/onsi/ginkgo) testing
 framework with [Gomega](https://github.com/onsi/gomega) matchers.
+
+Since its creation, `notwork` has steadily grown to not only support staple
+network interface types such as `bridge`, `veth`, and `macvlan`, but also
+weirder types such as `netkit` and `netdevsim`.
 
 ## Usage Example
 

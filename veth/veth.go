@@ -56,7 +56,7 @@ func NewTransient(opts ...Opt) (dupond netlink.Link, dupont netlink.Link) {
 	// destination network namespace. Yuck.
 	if peerNamespace := veth.Link.(*netlink.Veth).PeerNamespace; peerNamespace != nil {
 		nlh := Successful(netlink.NewHandleAt(vishnetns.NsHandle(int(peerNamespace.(netlink.NsFd)))))
-		defer nlh.Close()
+		defer func() { _ = nlh.Close() }()
 		dupont = Successful(nlh.LinkByName(dupond.(*netlink.Veth).PeerName))
 		return
 	}

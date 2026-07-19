@@ -93,7 +93,7 @@ func linkFds(l netlink.Link) (netnsfd int, ifindex int, err error) {
 				_ = unix.Close(netnsfd)
 				return 0, 0, fmt.Errorf("invalid network namespace fd reference, reason: %w", err)
 			}
-			defer nlh.Close()
+			defer func() { _ = nlh.Close() }()
 			l, err := nlh.LinkByName(l.Attrs().Name)
 			if err != nil {
 				_ = unix.Close(netnsfd)

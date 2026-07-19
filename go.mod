@@ -8,7 +8,7 @@ require (
 	github.com/onsi/gomega v1.42.1
 	github.com/thediveo/faf v0.2.3
 	github.com/thediveo/testily v0.11.0
-	github.com/vishvananda/netlink v1.3.1
+	github.com/vishvananda/netlink v1.3.2-0.20260610182031-c05a276ed0e0 // b/c of netkit support
 	pault.ag/go/modprobe v0.2.0
 )
 
@@ -39,7 +39,7 @@ require (
 	github.com/thediveo/spacetest v0.15.0
 	github.com/thediveo/success v1.3.1
 	github.com/vishvananda/netns v0.0.5
-	golang.org/x/net v0.56.0 // indirect
+	golang.org/x/net v0.56.0
 	golang.org/x/sys v0.47.0
 	golang.org/x/text v0.38.0 // indirect
 	golang.org/x/tools v0.47.0 // indirect
