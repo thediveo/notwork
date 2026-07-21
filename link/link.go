@@ -26,6 +26,8 @@ import (
 	"github.com/vishvananda/netns"
 	"golang.org/x/sys/unix"
 
+	"github.com/thediveo/notwork/internal/nkwrap"
+
 	. "github.com/onsi/ginkgo/v2" //nolint:staticcheck // ST1001 rule does not apply
 	. "github.com/onsi/gomega"    //nolint:staticcheck // ST1001 rule does not apply
 )
@@ -123,7 +125,7 @@ func NewTransient(link netlink.Link, prefix string, opts ...Opt) netlink.Link {
 		var err error
 		linknetnsh, err = netlink.NewHandleAt(netns.NsHandle(linkNamespace.(netlink.NsFd)))
 		Expect(err).NotTo(HaveOccurred(), "cannot create NETLINK handle for link network namespace")
-		defer linknetnsh.Close() // only needed momentarily inside this fn
+		defer func() { _ = linknetnsh.Close() }() // only needed momentarily inside this fn
 	}
 
 	// We want to keep a netlink handle to the network namespace where the
@@ -157,7 +159,7 @@ func NewTransient(link netlink.Link, prefix string, opts ...Opt) netlink.Link {
 		// Only close the netlink handle when it wasn't captured for a (Ginkgo)
 		// deferred cleanup and thus hasn't been set to nil.
 		if netnsh != nil {
-			netnsh.Close()
+			_ = netnsh.Close()
 		}
 	}()
 
@@ -168,18 +170,29 @@ func NewTransient(link netlink.Link, prefix string, opts ...Opt) netlink.Link {
 		// Roll the dice to create a (new) random interface name...
 		ifname := base62Nifname(prefix)
 		link.Attrs().Name = ifname
-		// If this is going to be a VETH peer-to-peer link, then also roll the
-		// dice to create a random peer interface name...
-		if veth, ok := link.(*netlink.Veth); ok {
+
+		switch link := link.(type) {
+		case *netlink.Veth:
+			// If this is going to be a VETH peer-to-peer link, then also roll the
+			// dice to create a random peer interface name...
 			peername := base62Nifname(prefix)
-			veth.PeerName = peername
+			link.PeerName = peername
+		case *nkwrap.Netkit:
+			peername := base62Nifname(prefix)
+			link.Peer.Name = peername
+			link.UpdatePrivatePeer()
 		}
+
 		// Try to create the link and let's see what happens...
 		var err error
+		netlinkLink := link
+		if nkwraplink, ok := link.(*nkwrap.Netkit); ok {
+			netlinkLink = &nkwraplink.Netkit
+		}
 		if linknetnsh != nil {
-			err = linknetnsh.LinkAdd(link)
+			err = linknetnsh.LinkAdd(netlinkLink)
 		} else {
-			err = netlink.LinkAdd(link)
+			err = netlink.LinkAdd(netlinkLink)
 		}
 		if err != nil {
 			// did we run just run into an accidentally duplicate random name,
@@ -204,7 +217,7 @@ func NewTransient(link netlink.Link, prefix string, opts ...Opt) netlink.Link {
 			netnsh := netnsh // the deferred cleanup closure must capture the handle value copy.
 			DeferCleanup(func() {
 				defer func() {
-					netnsh.Close() // finally release the netlink handle
+					_ = netnsh.Close() // finally release the netlink handle
 				}()
 				By(fmt.Sprintf("removing transient network interface %q", link.Attrs().Name))
 				Expect(netnsh.LinkDel(link)).To(Succeed(), "cannot remove transient network interface %q", link.Attrs().Name)
@@ -216,6 +229,13 @@ func NewTransient(link netlink.Link, prefix string, opts ...Opt) netlink.Link {
 		netnsh = nil
 		return link
 	}
+}
+
+// Up brings the specified network interface up, but does not wait for it to
+// become operational.
+func Up(link netlink.Link) {
+	GinkgoHelper()
+	Expect(netlink.LinkSetUp(link)).To(Succeed())
 }
 
 // EnsureUp brings the specified network interface up and waits for it to become

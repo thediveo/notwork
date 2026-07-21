@@ -48,7 +48,7 @@ func New(netnsfd int) *netlink.Handle {
 	Expect(err).NotTo(HaveOccurred(),
 		"cannot create netlink handle for network namespace")
 	DeferCleanup(func() {
-		h.Close()
+		_ = h.Close()
 	})
 	return h
 }

@@ -21,9 +21,9 @@ import (
 	"github.com/thediveo/notwork/link"
 )
 
-// InNamespace configures a VXLAN network interface to be created in the
-// network namespace referenced by fdref, instead of creating it in the current
-// network namespace.
+// InNamespace configures a VLAN network interface to be created in the network
+// namespace referenced by fdref, instead of creating it in the current network
+// namespace.
 func InNamespace(fdref int) Opt {
 	return func(l *link.Link) error {
 		l.Attrs().Namespace = netlink.NsFd(fdref)
