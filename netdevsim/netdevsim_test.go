@@ -152,7 +152,9 @@ var _ = Describe("netdevsim network interfaces", Ordered, func() {
 					WithPorts(1),
 					WithRxTxQueueCountEach(1),
 					WithMaxVFs(4))
-				pf := Successful(netlink.LinkByName(portnifs[0].Attrs().Name))
+				hdl := Successful(netlink.NewHandle())
+				DeferCleanup(hdl.Close)
+				pf := Successful(hdl.LinkByName(portnifs[0].Attrs().Name))
 				Expect(pf.Attrs().Vfs).To(HaveLen(4))
 			})
 

@@ -244,7 +244,7 @@ func newTransient(options *Options) (uint, []netlink.Link) {
 }
 
 // lowestUnusedID returns the lowest available netdevsim ID (which start from
-// zero).
+// zero). sysfsroot is the path to where a sysfs is mounted as "sys".
 func lowestUnusedID(sysfsroot string) uint {
 	netdevsimIDs := []uint{}
 	for ndevsim := range faf.ReadDir(filepath.Join(sysfsroot, "sys/bus/netdevsim/devices")) {
