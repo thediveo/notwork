@@ -22,7 +22,6 @@ import (
 	"github.com/vishvananda/netlink"
 
 	"github.com/thediveo/notwork/internal/auxvalues"
-	"github.com/thediveo/notwork/internal/neu"
 	"github.com/thediveo/notwork/link"
 )
 
@@ -48,7 +47,7 @@ func WithLinkNamespace(fdref int) Opt {
 // WithVLANFiltering configures the bridge with VLAN filtering.
 func WithVLANFiltering() Opt {
 	return func(br *link.Link) error {
-		br.Link.(*netlink.Bridge).VlanFiltering = neu.Value(true)
+		br.Link.(*netlink.Bridge).VlanFiltering = new(true)
 		return nil
 	}
 }
@@ -56,7 +55,7 @@ func WithVLANFiltering() Opt {
 // WithoutVLANFiltering configures the bridge to not use VLAN filtering.
 func WithoutVLANFiltering() Opt {
 	return func(br *link.Link) error {
-		br.Link.(*netlink.Bridge).VlanFiltering = neu.Value(false)
+		br.Link.(*netlink.Bridge).VlanFiltering = new(false)
 		return nil
 	}
 }
@@ -74,7 +73,7 @@ func WithAgeing(d time.Duration) Opt {
 		if mus < 0 || mus > math.MaxUint32 {
 			return errors.New("ageing duration out of range")
 		}
-		br.Link.(*netlink.Bridge).AgeingTime = neu.Value(uint32(
+		br.Link.(*netlink.Bridge).AgeingTime = new(uint32(
 			uint64(mus) / (microsecondsPerSecond / auxvalues.CLKTCK())))
 		return nil
 	}
@@ -91,7 +90,7 @@ func WithHello(d time.Duration) Opt {
 		if mus < 0 || mus > math.MaxUint32 {
 			return errors.New("hello duration out of range")
 		}
-		br.Link.(*netlink.Bridge).HelloTime = neu.Value(uint32(
+		br.Link.(*netlink.Bridge).HelloTime = new(uint32(
 			uint64(mus) / (microsecondsPerSecond / auxvalues.CLKTCK())))
 		return nil
 	}
@@ -101,7 +100,7 @@ func WithHello(d time.Duration) Opt {
 // multicast snooping to be turned on.
 func WithMulticastSnooping() Opt {
 	return func(br *link.Link) error {
-		br.Link.(*netlink.Bridge).MulticastSnooping = neu.Value(true)
+		br.Link.(*netlink.Bridge).MulticastSnooping = new(true)
 		return nil
 	}
 }
@@ -109,7 +108,7 @@ func WithMulticastSnooping() Opt {
 // WithoutMulticastSnooping configures multicast snooping to be turned off.
 func WithoutMulticastSnooping() Opt {
 	return func(br *link.Link) error {
-		br.Link.(*netlink.Bridge).MulticastSnooping = neu.Value(false)
+		br.Link.(*netlink.Bridge).MulticastSnooping = new(false)
 		return nil
 	}
 }

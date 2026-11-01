@@ -75,8 +75,12 @@ func readauxv(path string) auxvMap {
 		return nil
 	}
 
+	return parseauxv(auxv, int(unsafe.Sizeof(uintptr(0))))
+}
+
+func parseauxv(auxv []byte, wordSize int) auxvMap {
 	var readUlong func([]byte) ulong
-	wordSize := unsafe.Sizeof(uintptr(0))
+
 	switch wordSize {
 	case 8:
 		readUlong = func(b []byte) ulong {

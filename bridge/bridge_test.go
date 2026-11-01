@@ -22,7 +22,6 @@ import (
 	"github.com/vishvananda/netlink"
 
 	"github.com/thediveo/notwork/internal/auxvalues"
-	"github.com/thediveo/notwork/internal/neu"
 	"github.com/thediveo/notwork/veth"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -59,7 +58,7 @@ var _ = Describe("provides transient bridge network interfaces", func() {
 		By("creating a bridge")
 		br := NewTransient()
 		brchk := Successful(netlink.LinkByName(br.Attrs().Name))
-		Expect(brchk).To(HaveField("AgeingTime", neu.Value(uint32(300*auxvalues.CLKTCK()))))
+		Expect(brchk).To(HaveField("AgeingTime", new(uint32(300*auxvalues.CLKTCK()))))
 
 		By("creating a veth pair and adding one end to the bridge")
 		there := netns.NewTransient()
