@@ -20,7 +20,6 @@ import (
 	"github.com/vishvananda/netlink"
 
 	"github.com/thediveo/notwork/internal/auxvalues"
-	"github.com/thediveo/notwork/internal/neu"
 	"github.com/thediveo/notwork/link"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -43,15 +42,15 @@ var _ = Describe("bridge configuration options", func() {
 		}
 		Expect(l.Link).To(HaveField("Namespace", netlink.NsFd(42)))
 		Expect(l).To(HaveField("LinkNamespace", netlink.NsFd(666)))
-		Expect(l.Link).To(HaveField("VlanFiltering", neu.Value(true)))
-		Expect(l.Link).To(HaveField("MulticastSnooping", neu.Value(true)))
-		Expect(l.Link).To(HaveField("AgeingTime", neu.Value(uint32(3*auxvalues.CLKTCK()))))
-		Expect(l.Link).To(HaveField("HelloTime", neu.Value(uint32(5*auxvalues.CLKTCK()))))
+		Expect(l.Link).To(HaveField("VlanFiltering", new(true)))
+		Expect(l.Link).To(HaveField("MulticastSnooping", new(true)))
+		Expect(l.Link).To(HaveField("AgeingTime", new(uint32(3*auxvalues.CLKTCK()))))
+		Expect(l.Link).To(HaveField("HelloTime", new(uint32(5*auxvalues.CLKTCK()))))
 
 		Expect(WithoutVLANFiltering()(l)).To(Succeed())
-		Expect(l.Link).To(HaveField("VlanFiltering", neu.Value(false)))
+		Expect(l.Link).To(HaveField("VlanFiltering", new(false)))
 		Expect(WithoutMulticastSnooping()(l)).To(Succeed())
-		Expect(l.Link).To(HaveField("MulticastSnooping", neu.Value(false)))
+		Expect(l.Link).To(HaveField("MulticastSnooping", new(false)))
 
 		Expect(WithAgeing(-1 * time.Second)(l)).NotTo(Succeed())
 		Expect(WithHello(-1 * time.Second)(l)).NotTo(Succeed())
