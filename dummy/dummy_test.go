@@ -16,12 +16,15 @@ package dummy
 
 import (
 	"errors"
+	"net"
 	"os"
 	"time"
 
+	"github.com/thediveo/spacetest/netns"
 	"github.com/vishvananda/netlink"
 
 	"github.com/thediveo/notwork/link"
+	"github.com/thediveo/notwork/nlhandle"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -68,6 +71,14 @@ var _ = Describe("creating transient dummy network interfaces", func() {
 		// Check that the network interface was in fact created.
 		ql := Successful(netlink.LinkByIndex(dl.Attrs().Index))
 		Expect(ql.Attrs().OperState).NotTo(BeEquivalentTo(netlink.OperDown))
+	})
+
+	It("brings up a transient dummy network interface in a different network namespace", func() {
+		netnsfd := netns.NewTransient()
+		dl := NewTransientUp(InNamespace(netnsfd))
+		ql := Successful(nlhandle.New(netnsfd).LinkByIndex(dl.Attrs().Index))
+		Expect(ql.Attrs().Name).To(Equal(dl.Attrs().Name))
+		Expect(ql.Attrs().Flags & net.FlagUp).NotTo(BeZero())
 	})
 
 	When("using options", func() {
