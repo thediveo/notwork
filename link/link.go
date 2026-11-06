@@ -232,18 +232,40 @@ func NewTransient(link netlink.Link, prefix string, opts ...Opt) netlink.Link {
 }
 
 // Up brings the specified network interface up, but does not wait for it to
-// become operational.
+// become operational. If the link's [netlink.LinkAttrs.Namespace] references a
+// network namespace, Up works in that network namespace, otherwise in the
+// current one.
 func Up(link netlink.Link) {
 	GinkgoHelper()
-	Expect(netlink.LinkSetUp(link)).To(Succeed())
+	Expect(link).NotTo(BeNil(), "need a non-nil link description")
+	nlh := namespacedHandle(Default, link)
+	defer func() { _ = nlh.Close() }()
+	Expect(nlh.LinkSetUp(link)).To(Succeed())
 }
 
 // EnsureUp brings the specified network interface up and waits for it to become
 // operationally “UP” or “UNKNOWN”. The maximum wait duration can be optionally
-// specified; it defaults to 2s.
+// specified; it defaults to 2s. Same as [Up], EnsureUp works in the network
+// namespace referenced by the link's [netlink.LinkAttrs.Namespace], if any.
 func EnsureUp(link netlink.Link, within ...time.Duration) {
 	GinkgoHelper()
 	ensureUp(Default, link, false, within...)
+}
+
+// namespacedHandle returns a netlink handle for the network namespace
+// referenced by the link's Namespace attribute, otherwise for the current
+// network namespace.
+func namespacedHandle(g Gomega, link netlink.Link) *netlink.Handle {
+	GinkgoHelper()
+	var nlh *netlink.Handle
+	var err error
+	if nsfd, ok := link.Attrs().Namespace.(netlink.NsFd); ok {
+		nlh, err = netlink.NewHandleAt(netns.NsHandle(nsfd))
+	} else {
+		nlh, err = netlink.NewHandle()
+	}
+	g.Expect(err).NotTo(HaveOccurred(), "cannot create NETLINK handle")
+	return nlh
 }
 
 // ensureUp takes an additional Gomega in order to allow unit testing it.
@@ -263,10 +285,14 @@ func ensureUp(g Gomega, link netlink.Link, skipup bool, within ...time.Duration)
 	}
 
 	if !skipup {
-		g.Expect(netlink.LinkSetUp(link)).To(Succeed())
+		nlh := namespacedHandle(g, link)
+		defer func() { _ = nlh.Close() }()
+		g.Expect(nlh.LinkSetUp(link)).To(Succeed())
 	}
+	nlh := namespacedHandle(g, link)
+	defer func() { _ = nlh.Close() }()
 	g.Eventually(func() bool {
-		lnk, err := netlink.LinkByIndex(link.Attrs().Index)
+		lnk, err := nlh.LinkByIndex(link.Attrs().Index)
 		if err != nil {
 			StopTrying("link cannot come up").Wrap(err).Now()
 		}

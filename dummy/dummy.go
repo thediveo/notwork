@@ -46,7 +46,8 @@ func NewTransient(opts ...Opt) netlink.Link {
 }
 
 // NewTransientUp creates a transient network interface of type “[dummy]” and
-// additionally brings it up. It does not configure any IP address(es) though.
+// additionally brings it up, also when created in a different network namespace
+// using [InNamespace]. It does not configure any IP address(es) though.
 // NewTransient automatically defers proper automatic removal of the dummy
 // network interface.
 //
@@ -54,7 +55,6 @@ func NewTransient(opts ...Opt) netlink.Link {
 func NewTransientUp(opts ...Opt) netlink.Link {
 	GinkgoHelper()
 	dummy := NewTransient(opts...)
-	Expect(netlink.LinkSetUp(dummy)).To(
-		Succeed(), "cannot bring transient interface %q up", dummy.Attrs().Name)
+	link.Up(dummy)
 	return dummy
 }

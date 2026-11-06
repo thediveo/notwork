@@ -16,6 +16,7 @@ package link
 
 import (
 	"errors"
+	"net"
 	"os"
 	"runtime"
 	"time"
@@ -254,6 +255,25 @@ var _ = Describe("creates transient network interfaces", func() {
 			}()
 			Expect(r).To(BeNil())
 
+		})
+
+		It("brings up a network interface in the network namespace it is in", func() {
+			netnsfd := netns.NewTransient()
+			dmy := NewTransient(&netlink.Dummy{
+				LinkAttrs: netlink.LinkAttrs{
+					Namespace: netlink.NsFd(netnsfd),
+				},
+			}, "tst-")
+			netnsh := nlhandle.New(netnsfd)
+
+			Up(dmy)
+			Expect(Successful(netnsh.LinkByIndex(dmy.Attrs().Index)).Attrs().Flags & net.FlagUp).
+				NotTo(BeZero())
+
+			Expect(netnsh.LinkSetDown(dmy)).To(Succeed())
+			EnsureUp(dmy)
+			Expect(Successful(netnsh.LinkByIndex(dmy.Attrs().Index)).Attrs().OperState).
+				NotTo(Equal(netlink.LinkOperState(netlink.OperDown)))
 		})
 
 	})
